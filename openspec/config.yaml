@@ -1,0 +1,19 @@
+schema: spec-driven
+
+context: |
+  Tech stack: Vue 3, Vite, TypeScript, Pinia, Vue Router, Tailwind CSS v4
+  Backend: Supabase (PostgreSQL + Realtime + Auth + Storage)
+  Design system: See design.md — Organic/Natural (wabi-sabi) aesthetic
+  Animation: Anime.js + CSS @keyframes, organic easing (cubic-bezier(0.22, 1, 0.36, 1))
+  Icons: @phosphor-icons/vue (fill variant)
+  Fonts: @fontsource/fraunces (headings) + @fontsource/nunito (body)
+  Formatting: oxfmt (not Prettier)
+  Domain: Real-time social chat application
+
+  Design tokens:
+  - Background: #FDFCF8, Foreground: #2C2C24
+  - Primary: #5D7052, Secondary: #C18C5D, Accent: #E6DCCD
+  - Cards: rounded-[2rem], bg-[#FEFEFA], shadow-soft
+  - Buttons: rounded-full, hover:scale-105, active:scale-95
+  - Inputs: rounded-full, h-12, bg-white/50
+  - Global noise texture overlay at 4% opacity
