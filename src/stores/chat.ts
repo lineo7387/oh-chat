@@ -17,8 +17,7 @@ export const useChatStore = defineStore('chat', () => {
 
   function setCurrentConversation(id: string | null) {
     currentConversationId.value = id
-    currentConversation.value =
-      conversations.value.find((c) => c.id === id) || null
+    currentConversation.value = conversations.value.find((c) => c.id === id) || null
   }
 
   async function sendMessage(content: string) {

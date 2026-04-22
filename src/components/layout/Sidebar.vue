@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { PhMagnifyingGlass, PhPlus, PhGear, PhX } from '@phosphor-icons/vue'
 
-const props = defineProps<{
+defineProps<{
   isOpen: boolean
 }>()
 
@@ -36,15 +36,11 @@ function close() {
           src="https://api.dicebear.com/7.x/avataaars/svg?seed=default"
           alt="Avatar"
           class="h-full w-full object-cover"
-        >
+        />
       </div>
       <div class="flex-1 min-w-0">
-        <p class="truncate font-heading text-sm font-semibold text-foreground">
-          Guest User
-        </p>
-        <p class="text-xs text-muted-foreground">
-          Online
-        </p>
+        <p class="truncate font-heading text-sm font-semibold text-foreground">Guest User</p>
+        <p class="text-xs text-muted-foreground">Online</p>
       </div>
       <button
         class="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-muted md:hidden"
@@ -65,15 +61,13 @@ function close() {
           type="text"
           placeholder="Search conversations..."
           class="h-10 w-full rounded-full border border-border bg-white/50 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground transition-all focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/30"
-        >
+        />
       </div>
     </div>
 
     <!-- Conversation list -->
     <div class="flex-1 overflow-y-auto px-2">
-      <div class="py-2 text-center text-sm text-muted-foreground">
-        No conversations yet
-      </div>
+      <div class="py-2 text-center text-sm text-muted-foreground">No conversations yet</div>
     </div>
 
     <!-- Bottom actions -->

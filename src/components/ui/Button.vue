@@ -33,8 +33,7 @@ const emit = defineEmits<{
           'bg-secondary text-secondary-foreground shadow-float hover:shadow-hover hover:scale-105 active:scale-95',
         variant === 'outline' &&
           'border-2 border-secondary bg-transparent text-secondary hover:bg-secondary/10 active:scale-95',
-        variant === 'ghost' &&
-          'bg-transparent text-primary hover:bg-primary/10 active:scale-95',
+        variant === 'ghost' && 'bg-transparent text-primary hover:bg-primary/10 active:scale-95',
         // Sizes
         size === 'sm' && 'h-10 px-6 text-sm',
         size === 'default' && 'h-12 px-8 text-base',

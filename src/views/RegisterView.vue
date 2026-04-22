@@ -40,49 +40,30 @@ async function handleRegister() {
 <template>
   <div class="space-y-6">
     <div class="text-center">
-      <h1 class="font-heading text-3xl font-bold text-foreground">
-        Create account
-      </h1>
-      <p class="mt-2 text-sm text-muted-foreground">
-        Start chatting with friends today
-      </p>
+      <h1 class="font-heading text-3xl font-bold text-foreground">Create account</h1>
+      <p class="mt-2 text-sm text-muted-foreground">Start chatting with friends today</p>
     </div>
 
     <form class="space-y-4" @submit.prevent="handleRegister">
-      <Input
-        v-model="username"
-        placeholder="Username"
-      >
+      <Input v-model="username" placeholder="Username">
         <template #prefix>
           <PhUser :size="18" class="text-muted-foreground" />
         </template>
       </Input>
 
-      <Input
-        v-model="email"
-        type="email"
-        placeholder="Email address"
-      >
+      <Input v-model="email" type="email" placeholder="Email address">
         <template #prefix>
           <PhEnvelope :size="18" class="text-muted-foreground" />
         </template>
       </Input>
 
-      <Input
-        v-model="password"
-        type="password"
-        placeholder="Password"
-      >
+      <Input v-model="password" type="password" placeholder="Password">
         <template #prefix>
           <PhLock :size="18" class="text-muted-foreground" />
         </template>
       </Input>
 
-      <Input
-        v-model="confirmPassword"
-        type="password"
-        placeholder="Confirm password"
-      >
+      <Input v-model="confirmPassword" type="password" placeholder="Confirm password">
         <template #prefix>
           <PhLock :size="18" class="text-muted-foreground" />
         </template>

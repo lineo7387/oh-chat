@@ -15,9 +15,7 @@ function handleSubmit() {
 <template>
   <div class="space-y-6">
     <div class="text-center">
-      <h1 class="font-heading text-3xl font-bold text-foreground">
-        Reset password
-      </h1>
+      <h1 class="font-heading text-3xl font-bold text-foreground">Reset password</h1>
       <p class="mt-2 text-sm text-muted-foreground">
         Enter your email and we'll send you a reset link
       </p>
@@ -25,20 +23,14 @@ function handleSubmit() {
 
     <div v-if="submitted" class="rounded-2xl bg-primary/10 p-6 text-center">
       <PhPaperPlaneRight :size="32" class="mx-auto mb-3 text-primary" />
-      <p class="font-heading text-lg font-semibold text-foreground">
-        Check your inbox
-      </p>
+      <p class="font-heading text-lg font-semibold text-foreground">Check your inbox</p>
       <p class="mt-1 text-sm text-muted-foreground">
         We've sent a password reset link to {{ email }}
       </p>
     </div>
 
     <form v-else class="space-y-4" @submit.prevent="handleSubmit">
-      <Input
-        v-model="email"
-        type="email"
-        placeholder="Email address"
-      >
+      <Input v-model="email" type="email" placeholder="Email address">
         <template #prefix>
           <PhEnvelope :size="18" class="text-muted-foreground" />
         </template>

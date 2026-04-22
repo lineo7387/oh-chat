@@ -38,7 +38,7 @@ function onInput(e: Event) {
         )
       "
       @input="onInput"
-    >
+    />
     <p v-if="error" class="mt-1.5 px-4 text-xs text-destructive">
       {{ error }}
     </p>

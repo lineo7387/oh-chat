@@ -8,9 +8,30 @@ import Button from '@/components/ui/Button.vue'
   <div class="relative flex h-full flex-col items-center justify-center px-6 py-12">
     <BlobBackground
       :blobs="[
-        { color: 'rgba(93, 112, 82, 0.06)', size: '450px', top: '10%', left: '20%', shape: 1, delay: 0 },
-        { color: 'rgba(193, 140, 93, 0.05)', size: '350px', bottom: '15%', right: '15%', shape: 2, delay: -7 },
-        { color: 'rgba(230, 220, 205, 0.08)', size: '400px', top: '50%', left: '60%', shape: 3, delay: -12 },
+        {
+          color: 'rgba(93, 112, 82, 0.06)',
+          size: '450px',
+          top: '10%',
+          left: '20%',
+          shape: 1,
+          delay: 0,
+        },
+        {
+          color: 'rgba(193, 140, 93, 0.05)',
+          size: '350px',
+          bottom: '15%',
+          right: '15%',
+          shape: 2,
+          delay: -7,
+        },
+        {
+          color: 'rgba(230, 220, 205, 0.08)',
+          size: '400px',
+          top: '50%',
+          left: '60%',
+          shape: 3,
+          delay: -12,
+        },
       ]"
     />
 
@@ -26,7 +47,8 @@ import Button from '@/components/ui/Button.vue'
       </h1>
 
       <p class="mt-4 text-lg leading-relaxed text-muted-foreground">
-        A quiet space for meaningful conversations. Select a chat from the sidebar or start something new.
+        A quiet space for meaningful conversations. Select a chat from the sidebar or start
+        something new.
       </p>
 
       <div class="mt-10">

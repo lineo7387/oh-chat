@@ -43,20 +43,8 @@ const fallbackLetter = computed(() => {
 
 <template>
   <div :class="cn('relative inline-flex shrink-0', props.class)">
-    <div
-      :class="
-        cn(
-          'overflow-hidden rounded-full bg-primary/10',
-          sizeClasses[size],
-        )
-      "
-    >
-      <img
-        v-if="src"
-        :src="src"
-        :alt="alt"
-        class="h-full w-full object-cover"
-      >
+    <div :class="cn('overflow-hidden rounded-full bg-primary/10', sizeClasses[size])">
+      <img v-if="src" :src="src" :alt="alt" class="h-full w-full object-cover" />
       <div
         v-else-if="fallbackLetter"
         class="flex h-full w-full items-center justify-center font-heading font-bold text-primary"
@@ -64,10 +52,7 @@ const fallbackLetter = computed(() => {
       >
         {{ fallbackLetter }}
       </div>
-      <div
-        v-else
-        class="flex h-full w-full items-center justify-center text-primary"
-      >
+      <div v-else class="flex h-full w-full items-center justify-center text-primary">
         <PhUser :size="size === 'lg' ? 28 : size === 'md' ? 20 : 16" weight="fill" />
       </div>
     </div>

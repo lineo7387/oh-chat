@@ -11,7 +11,11 @@ const router = createRouter({
       children: [
         { path: '', name: 'login', component: () => import('@/views/LoginView.vue') },
         { path: 'register', name: 'register', component: () => import('@/views/RegisterView.vue') },
-        { path: 'forgot-password', name: 'forgot-password', component: () => import('@/views/ForgotPasswordView.vue') },
+        {
+          path: 'forgot-password',
+          name: 'forgot-password',
+          component: () => import('@/views/ForgotPasswordView.vue'),
+        },
       ],
       meta: { requiresGuest: true },
     },
@@ -23,16 +27,32 @@ const router = createRouter({
       meta: { requiresAuth: true },
       children: [
         { path: '', name: 'empty-chat', component: () => import('@/views/EmptyChatView.vue') },
-        { path: 'chat/:conversationId', name: 'chat', component: () => import('@/views/ChatView.vue') },
+        {
+          path: 'chat/:conversationId',
+          name: 'chat',
+          component: () => import('@/views/ChatView.vue'),
+        },
         { path: 'settings', name: 'settings', component: () => import('@/views/SettingsView.vue') },
         { path: 'contacts', name: 'contacts', component: () => import('@/views/ContactsView.vue') },
-        { path: 'contacts/:userId', name: 'user-profile', component: () => import('@/views/UserProfileView.vue') },
-        { path: 'new-conversation', name: 'new-conversation', component: () => import('@/views/NewConversationView.vue') },
+        {
+          path: 'contacts/:userId',
+          name: 'user-profile',
+          component: () => import('@/views/UserProfileView.vue'),
+        },
+        {
+          path: 'new-conversation',
+          name: 'new-conversation',
+          component: () => import('@/views/NewConversationView.vue'),
+        },
       ],
     },
 
     // 404
-    { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('@/views/NotFoundView.vue') },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      component: () => import('@/views/NotFoundView.vue'),
+    },
   ],
 })
 

@@ -17,10 +17,7 @@ function closeSidebar() {
 <template>
   <div class="flex h-screen overflow-hidden bg-background">
     <!-- Sidebar -->
-    <Sidebar
-      :is-open="sidebarOpen"
-      @close="closeSidebar"
-    />
+    <Sidebar :is-open="sidebarOpen" @close="closeSidebar" />
 
     <!-- Main content -->
     <main class="relative flex-1 overflow-hidden">

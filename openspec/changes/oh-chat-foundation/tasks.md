@@ -34,13 +34,19 @@
 ## Completed (continued)
 
 - [x] **Fix ChatLayout.vue** — Add missing `PhList` import from @phosphor-icons/vue
+- [x] **Create views/ChatView.vue** — Message list area, input area, conversation header (skeleton)
+- [x] **Create views/SettingsView.vue** — Tab-based layout with profile/account/appearance tabs (skeleton)
+- [x] **Create views/ContactsView.vue** — Contact list (skeleton)
+- [x] **Create views/UserProfileView.vue** — User profile display (skeleton)
+- [x] **Create views/NewConversationView.vue** — Search users + start conversation (skeleton)
+- [x] **Create views/NotFoundView.vue** — 404 page with organic style
+- [x] **Fix useAnimation.ts** — Migrate to animejs v4 API (`animate`, `cubicBezier`, `utils`)
+- [x] **Fix ESLint config** — Disable `vue/multi-word-component-names`, allow `_` prefix unused vars
+- [x] **Build verification** — pnpm run type-check, lint, format, build all pass
 
 ## Pending
 
-- [ ] **Create views/ChatView.vue** — Message list area, input area, conversation header (skeleton)
-- [ ] **Create views/SettingsView.vue** — Tab-based layout with profile/account/appearance tabs (skeleton)
-- [ ] **Create views/ContactsView.vue** — Contact list (skeleton)
-- [ ] **Create views/UserProfileView.vue** — User profile display (skeleton)
-- [ ] **Create views/NewConversationView.vue** — Search users + start conversation (skeleton)
-- [ ] **Create views/NotFoundView.vue** — 404 page with organic style
-- [ ] **Build verification** — npm run type-check, lint, format, build all pass
+- [ ] **Supabase database setup** — Create tables, RLS policies, realtime subscriptions
+- [ ] **Real-time message sync** — Integrate Supabase Realtime for live messages
+- [ ] **File upload** — Attachment support via Supabase Storage
+- [ ] **OAuth authentication** — Google/GitHub login

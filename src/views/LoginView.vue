@@ -27,30 +27,18 @@ async function handleLogin() {
 <template>
   <div class="space-y-6">
     <div class="text-center">
-      <h1 class="font-heading text-3xl font-bold text-foreground">
-        Welcome back
-      </h1>
-      <p class="mt-2 text-sm text-muted-foreground">
-        Sign in to continue your conversations
-      </p>
+      <h1 class="font-heading text-3xl font-bold text-foreground">Welcome back</h1>
+      <p class="mt-2 text-sm text-muted-foreground">Sign in to continue your conversations</p>
     </div>
 
     <form class="space-y-4" @submit.prevent="handleLogin">
-      <Input
-        v-model="email"
-        type="email"
-        placeholder="Email address"
-      >
+      <Input v-model="email" type="email" placeholder="Email address">
         <template #prefix>
           <PhEnvelope :size="18" class="text-muted-foreground" />
         </template>
       </Input>
 
-      <Input
-        v-model="password"
-        type="password"
-        placeholder="Password"
-      >
+      <Input v-model="password" type="password" placeholder="Password">
         <template #prefix>
           <PhLock :size="18" class="text-muted-foreground" />
         </template>

@@ -20,6 +20,7 @@
     "@phosphor-icons/vue": "^2.2.1",
     "@supabase/supabase-js": "^2.104.0",
     "@tailwindcss/vite": "^4.2.4",
+    "@vueuse/core": "^14.2.1",
     "animejs": "^4.3.6",
     "clsx": "^2.1.1",
     "pinia": "^3.0.4",
@@ -30,7 +31,6 @@
   },
   "devDependencies": {
     "@tsconfig/node24": "^24.0.4",
-    "@types/animejs": "^3.1.13",
     "@types/node": "^24.12.2",
     "@vitejs/plugin-vue": "^6.0.6",
     "@vue/eslint-config-typescript": "^14.7.0",

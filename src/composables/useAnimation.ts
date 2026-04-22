@@ -1,68 +1,54 @@
-import anime from 'animejs'
+import { animate, cubicBezier, utils } from 'animejs'
 
-const ORGANIC_EASE = 'cubicBezier(0.22, 1, 0.36, 1)'
+const organicEase = cubicBezier(0.22, 1, 0.36, 1)
 
-export function animateEnter(
-  el: HTMLElement,
-  options?: { delay?: number; duration?: number },
-) {
-  return anime({
-    targets: el,
+export function animateEnter(el: HTMLElement, options?: { delay?: number; duration?: number }) {
+  return animate(el, {
     opacity: [0, 1],
     translateY: [20, 0],
     scale: [0.95, 1],
     duration: options?.duration ?? 400,
     delay: options?.delay ?? 0,
-    easing: ORGANIC_EASE,
+    ease: organicEase,
   })
 }
 
-export function animateMessageIn(
-  el: HTMLElement,
-  options?: { delay?: number },
-) {
-  return anime({
-    targets: el,
+export function animateMessageIn(el: HTMLElement, options?: { delay?: number }) {
+  return animate(el, {
     opacity: [0, 1],
     translateY: [16, 0],
     duration: 350,
     delay: options?.delay ?? 0,
-    easing: ORGANIC_EASE,
+    ease: organicEase,
   })
 }
 
 export function animateBlob(el: HTMLElement, delay: number = 0) {
-  return anime({
-    targets: el,
-    translateX: () => anime.random(-30, 30),
-    translateY: () => anime.random(-30, 30),
-    rotate: () => anime.random(-3, 3),
-    duration: () => anime.random(15000, 25000),
+  return animate(el, {
+    translateX: () => utils.random(-30, 30),
+    translateY: () => utils.random(-30, 30),
+    rotate: () => utils.random(-3, 3),
+    duration: () => utils.random(15000, 25000),
     delay,
-    direction: 'alternate',
+    alternate: true,
     loop: true,
-    easing: 'easeInOutSine',
+    ease: 'inOutSine',
   })
 }
 
 export function animateScalePress(el: HTMLElement) {
-  return anime({
-    targets: el,
+  return animate(el, {
     scale: [1, 0.95, 1],
     duration: 150,
-    easing: ORGANIC_EASE,
+    ease: organicEase,
   })
 }
 
-export function animateSlideIn(
-  el: HTMLElement,
-  direction: 'left' | 'right' = 'right',
-) {
-  return anime({
-    targets: el,
+export function animateSlideIn(el: HTMLElement, direction: 'left' | 'right' = 'right') {
+  return animate(el, {
     opacity: [0, 1],
     translateX: direction === 'right' ? [-60, 0] : [60, 0],
     duration: 400,
-    easing: ORGANIC_EASE,
+    ease: organicEase,
   })
 }
