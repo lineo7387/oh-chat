@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import { PhMagnifyingGlass, PhPlus, PhGear, PhX } from '@phosphor-icons/vue'
+import { computed, watch, onMounted } from 'vue'
+import { PhMagnifyingGlass, PhPlus, PhGear, PhX, PhChatCircle } from '@phosphor-icons/vue'
+import { useAuthStore } from '@/stores/auth'
+import { useChatStore } from '@/stores/chat'
+import Avatar from '@/components/ui/Avatar.vue'
 
 defineProps<{
   isOpen: boolean
@@ -9,8 +13,55 @@ const emit = defineEmits<{
   close: []
 }>()
 
+const authStore = useAuthStore()
+const chatStore = useChatStore()
+
 function close() {
   emit('close')
+}
+
+const displayName = computed(() => {
+  return authStore.profile?.display_name || authStore.profile?.username || 'Guest User'
+})
+
+const statusText = computed(() => {
+  return authStore.profile?.status || 'offline'
+})
+
+// Fetch conversations when authenticated
+onMounted(() => {
+  if (authStore.isAuthenticated) {
+    chatStore.fetchConversations()
+  }
+})
+
+watch(
+  () => authStore.isAuthenticated,
+  (isAuth) => {
+    if (isAuth) chatStore.fetchConversations()
+    else chatStore.conversations = []
+  },
+)
+
+function formatTime(dateStr: string | undefined): string {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  const now = new Date()
+  const isToday = date.toDateString() === now.toDateString()
+  if (isToday) {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  }
+  const yesterday = new Date(now)
+  yesterday.setDate(yesterday.getDate() - 1)
+  if (date.toDateString() === yesterday.toDateString()) {
+    return 'Yesterday'
+  }
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric' })
+}
+
+function truncatePreview(text: string | undefined, max = 40): string {
+  if (!text) return ''
+  return text.length > max ? text.slice(0, max) + '...' : text
 }
 </script>
 
@@ -31,16 +82,15 @@ function close() {
   >
     <!-- User avatar header -->
     <div class="flex items-center gap-3 border-b border-border/30 p-4">
-      <div class="h-10 w-10 overflow-hidden rounded-full bg-primary">
-        <img
-          src="https://api.dicebear.com/7.x/avataaars/svg?seed=default"
-          alt="Avatar"
-          class="h-full w-full object-cover"
-        />
-      </div>
-      <div class="flex-1 min-w-0">
-        <p class="truncate font-heading text-sm font-semibold text-foreground">Guest User</p>
-        <p class="text-xs text-muted-foreground">Online</p>
+      <Avatar
+        :src="authStore.profile?.avatar_url"
+        :alt="displayName"
+        size="md"
+        :status="authStore.profile?.status"
+      />
+      <div class="min-w-0 flex-1">
+        <p class="truncate font-heading text-sm font-semibold text-foreground">{{ displayName }}</p>
+        <p class="text-xs capitalize text-muted-foreground">{{ statusText }}</p>
       </div>
       <button
         class="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-muted md:hidden"
@@ -67,7 +117,66 @@ function close() {
 
     <!-- Conversation list -->
     <div class="flex-1 overflow-y-auto px-2">
-      <div class="py-2 text-center text-sm text-muted-foreground">No conversations yet</div>
+      <!-- Loading -->
+      <div v-if="chatStore.isLoading" class="space-y-2 py-2">
+        <div
+          v-for="i in 4"
+          :key="i"
+          class="flex animate-pulse items-center gap-3 rounded-2xl px-3 py-2.5"
+        >
+          <div class="h-10 w-10 shrink-0 rounded-full bg-muted" />
+          <div class="min-w-0 flex-1 space-y-1.5">
+            <div class="h-3 w-24 rounded bg-muted" />
+            <div class="h-2.5 w-32 rounded bg-muted/60" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty state -->
+      <div
+        v-else-if="chatStore.conversations.length === 0"
+        class="flex flex-col items-center justify-center py-12 text-center"
+      >
+        <PhChatCircle :size="32" class="mb-3 text-muted-foreground/40" />
+        <p class="text-sm text-muted-foreground">No conversations yet</p>
+        <p class="mt-1 text-xs text-muted-foreground/60">Start a new chat to begin</p>
+      </div>
+
+      <!-- Conversations -->
+      <div v-else class="space-y-0.5 py-2">
+        <RouterLink
+          v-for="conv in chatStore.conversations"
+          :key="conv.id"
+          :to="`/chat/${conv.id}`"
+          :class="[
+            'flex items-center gap-3 rounded-2xl px-3 py-2.5 transition-all duration-200',
+            chatStore.currentConversationId === conv.id
+              ? 'bg-primary/10 text-primary'
+              : 'text-foreground hover:bg-muted',
+          ]"
+          @click="close"
+        >
+          <Avatar
+            :src="chatStore.getConversationAvatar(conv)"
+            :alt="chatStore.getConversationName(conv)"
+            size="sm"
+            :status="chatStore.getConversationStatus(conv)"
+          />
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center justify-between">
+              <p class="truncate text-sm font-medium">
+                {{ chatStore.getConversationName(conv) }}
+              </p>
+              <span v-if="conv.lastMessage" class="shrink-0 pl-2 text-[10px] text-muted-foreground">
+                {{ formatTime(conv.lastMessage.created_at) }}
+              </span>
+            </div>
+            <p class="truncate text-xs text-muted-foreground">
+              {{ truncatePreview(conv.lastMessage?.content) }}
+            </p>
+          </div>
+        </RouterLink>
+      </div>
     </div>
 
     <!-- Bottom actions -->

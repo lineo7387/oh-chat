@@ -41,6 +41,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       conversations: {
         Row: {
@@ -70,6 +71,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       conversation_participants: {
         Row: {
@@ -93,6 +95,7 @@ export interface Database {
           last_read_message_id?: string | null
           role?: 'owner' | 'admin' | 'member'
         }
+        Relationships: []
       }
       messages: {
         Row: {
@@ -128,6 +131,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       message_reactions: {
         Row: {
@@ -148,6 +152,7 @@ export interface Database {
           emoji?: string
           created_at?: string
         }
+        Relationships: []
       }
       attachments: {
         Row: {
@@ -177,7 +182,10 @@ export interface Database {
           storage_path?: string
           created_at?: string
         }
+        Relationships: []
       }
     }
+    Views: Record<string, never>
+    Functions: Record<string, never>
   }
 }

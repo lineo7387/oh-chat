@@ -47,6 +47,9 @@
 ## Pending
 
 - [x] **Supabase database setup** — Create tables, RLS policies, realtime subscriptions
-- [ ] **Real-time message sync** — Integrate Supabase Realtime for live messages
+- [x] **Load real conversations** — Sidebar fetches and displays conversations from Supabase with participant info and last message preview
+- [x] **Real-time message sync** — Integrate Supabase Realtime for live messages
+- [x] **New conversation flow** — Search users and create direct conversations via NewConversationView
+- [x] **Real message loading & sending** — ChatView loads messages from DB and sends via Supabase
 - [ ] **File upload** — Attachment support via Supabase Storage
 - [ ] **OAuth authentication** — Google/GitHub login

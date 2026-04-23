@@ -1,7 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { PhList } from '@phosphor-icons/vue'
+import { useAuthStore } from '@/stores/auth'
+import { useChatStore } from '@/stores/chat'
 import Sidebar from '@/components/layout/Sidebar.vue'
+
+const authStore = useAuthStore()
+const chatStore = useChatStore()
 
 const sidebarOpen = ref(false)
 
@@ -12,6 +17,20 @@ function toggleSidebar() {
 function closeSidebar() {
   sidebarOpen.value = false
 }
+
+onMounted(async () => {
+  // Ensure auth is initialized
+  if (!authStore.user) {
+    await authStore.init()
+  }
+  // Load conversations and start realtime
+  await chatStore.fetchConversations()
+  chatStore.subscribeToMessages()
+})
+
+onUnmounted(() => {
+  chatStore.unsubscribeFromMessages()
+})
 </script>
 
 <template>

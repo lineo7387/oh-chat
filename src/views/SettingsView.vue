@@ -1,9 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { PhUser, PhShield, PhPalette } from '@phosphor-icons/vue'
+import { PhUser, PhShield, PhPalette, PhSignOut } from '@phosphor-icons/vue'
+import { useAuthStore } from '@/stores/auth'
+import { useRouter } from 'vue-router'
+import Button from '@/components/ui/Button.vue'
 
 type TabId = 'profile' | 'account' | 'appearance'
 
+const router = useRouter()
+const authStore = useAuthStore()
 const activeTab = ref<TabId>('profile')
 
 const tabs = [
@@ -64,6 +69,25 @@ const tabs = [
               Account settings will be available here. Change password, manage sessions, and
               security preferences.
             </p>
+          </div>
+          <div class="rounded-[2rem] border border-destructive/30 bg-card p-6 shadow-soft">
+            <h3 class="font-heading text-sm font-semibold text-destructive">Danger Zone</h3>
+            <p class="mt-1 text-sm text-muted-foreground">
+              Sign out of your account on this device.
+            </p>
+            <Button
+              variant="outline"
+              class="mt-4 border-destructive text-destructive hover:bg-destructive/10"
+              @click="
+                async () => {
+                  await authStore.signOut()
+                  router.push('/login')
+                }
+              "
+            >
+              <PhSignOut :size="18" />
+              <span>Sign Out</span>
+            </Button>
           </div>
         </div>
 

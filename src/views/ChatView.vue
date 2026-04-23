@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch, onMounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import {
   PhArrowLeft,
@@ -8,38 +8,89 @@ import {
   PhSmiley,
   PhPaperclip,
 } from '@phosphor-icons/vue'
+import { useAuthStore } from '@/stores/auth'
+import { useChatStore } from '@/stores/chat'
 import Avatar from '@/components/ui/Avatar.vue'
+import type { Profile } from '@/types'
 
 const route = useRoute()
-const _conversationId = route.params.conversationId as string
+const authStore = useAuthStore()
+const chatStore = useChatStore()
 
+const conversationId = ref(route.params.conversationId as string)
 const messageText = ref('')
-const messages = ref([
-  { id: 1, content: 'Hey! How are you doing?', isMine: false, time: '10:30 AM' },
-  {
-    id: 2,
-    content: "I'm doing great, thanks for asking! How about you?",
-    isMine: true,
-    time: '10:32 AM',
-  },
-  {
-    id: 3,
-    content: 'Pretty good. Just working on some new designs.',
-    isMine: false,
-    time: '10:33 AM',
-  },
-])
+const messagesContainer = ref<HTMLElement | null>(null)
 
-function sendMessage() {
-  if (!messageText.value.trim()) return
-  messages.value.push({
-    id: Date.now(),
-    content: messageText.value,
-    isMine: true,
-    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-  })
-  messageText.value = ''
+// Set current conversation and fetch messages
+async function loadConversation(id: string) {
+  chatStore.setCurrentConversation(id)
+  await chatStore.fetchMessages(id)
+  scrollToBottom()
 }
+
+function scrollToBottom() {
+  nextTick(() => {
+    messagesContainer.value?.scrollTo({
+      top: messagesContainer.value.scrollHeight,
+      behavior: 'smooth',
+    })
+  })
+}
+
+// Watch route param changes (when switching conversations)
+watch(
+  () => route.params.conversationId as string,
+  (newId) => {
+    if (newId && newId !== conversationId.value) {
+      conversationId.value = newId
+      loadConversation(newId)
+    }
+  },
+  { immediate: true },
+)
+
+onMounted(() => {
+  if (conversationId.value) {
+    loadConversation(conversationId.value)
+  }
+})
+
+async function sendMessage() {
+  if (!messageText.value.trim()) return
+  const content = messageText.value.trim()
+  messageText.value = ''
+
+  const result = await chatStore.sendMessage(content)
+  if (result.success) {
+    // Optimistically refetch messages; realtime will handle this eventually
+    await chatStore.fetchMessages(conversationId.value)
+    scrollToBottom()
+  }
+}
+
+function isMyMessage(senderId: string | null): boolean {
+  return senderId === authStore.user?.id
+}
+
+function formatMessageTime(dateStr: string): string {
+  return new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
+const conversationName = ref('Loading...')
+const conversationAvatar = ref<string | undefined>(undefined)
+const conversationStatus = ref<Profile['status'] | undefined>(undefined)
+
+watch(
+  () => chatStore.currentConversation,
+  (conv) => {
+    if (conv) {
+      conversationName.value = chatStore.getConversationName(conv)
+      conversationAvatar.value = chatStore.getConversationAvatar(conv)
+      conversationStatus.value = chatStore.getConversationStatus(conv)
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
@@ -53,11 +104,20 @@ function sendMessage() {
         <PhArrowLeft :size="22" class="text-foreground" />
       </RouterLink>
 
-      <Avatar size="md" alt="Conversation" status="online" />
+      <Avatar
+        size="md"
+        :src="conversationAvatar"
+        :alt="conversationName"
+        :status="conversationStatus"
+      />
 
       <div class="min-w-0 flex-1">
-        <h2 class="truncate font-heading text-base font-semibold text-foreground">Design Team</h2>
-        <p class="text-xs text-muted-foreground">3 members online</p>
+        <h2 class="truncate font-heading text-base font-semibold text-foreground">
+          {{ conversationName }}
+        </h2>
+        <p class="text-xs text-muted-foreground">
+          {{ conversationStatus ? `${conversationStatus}` : '' }}
+        </p>
       </div>
 
       <button
@@ -68,30 +128,74 @@ function sendMessage() {
     </div>
 
     <!-- Messages -->
-    <div class="flex-1 overflow-y-auto px-4 py-6">
-      <div class="space-y-4">
+    <div ref="messagesContainer" class="flex-1 overflow-y-auto px-4 py-6">
+      <div
+        v-if="chatStore.isLoading && chatStore.messages.length === 0"
+        class="flex h-full items-center justify-center"
+      >
+        <div class="space-y-4 w-full max-w-md">
+          <div
+            v-for="i in 3"
+            :key="i"
+            class="flex animate-pulse gap-3"
+            :class="i % 2 === 0 ? 'flex-row-reverse' : ''"
+          >
+            <div class="h-8 w-8 shrink-0 rounded-full bg-muted" />
+            <div class="h-12 w-48 rounded-2xl bg-muted/60" />
+          </div>
+        </div>
+      </div>
+
+      <div
+        v-else-if="chatStore.messages.length === 0"
+        class="flex h-full flex-col items-center justify-center text-center"
+      >
+        <p class="text-muted-foreground">No messages yet</p>
+        <p class="mt-1 text-xs text-muted-foreground/60">Say hello to start the conversation</p>
+      </div>
+
+      <div v-else class="space-y-4">
         <div
-          v-for="msg in messages"
+          v-for="msg in chatStore.messages"
           :key="msg.id"
-          :class="msg.isMine ? 'flex justify-end' : 'flex justify-start'"
+          :class="isMyMessage(msg.sender_id) ? 'flex justify-end' : 'flex justify-start'"
         >
           <div
-            :class="[
-              'max-w-[75%] rounded-[1.5rem] px-5 py-3 text-sm leading-relaxed',
-              msg.isMine
-                ? 'rounded-br-md bg-primary text-primary-foreground'
-                : 'rounded-bl-md bg-muted text-foreground',
-            ]"
+            class="flex max-w-[80%] gap-2"
+            :class="isMyMessage(msg.sender_id) ? 'flex-row-reverse' : ''"
           >
-            <p>{{ msg.content }}</p>
-            <p
+            <Avatar
+              v-if="!isMyMessage(msg.sender_id) && msg.sender"
+              size="sm"
+              :src="msg.sender.avatar_url"
+              :alt="msg.sender.display_name ?? msg.sender.username"
+            />
+            <div
               :class="[
-                'mt-1 text-right text-[10px]',
-                msg.isMine ? 'text-primary-foreground/70' : 'text-muted-foreground',
+                'rounded-[1.5rem] px-5 py-3 text-sm leading-relaxed',
+                isMyMessage(msg.sender_id)
+                  ? 'rounded-br-md bg-primary text-primary-foreground'
+                  : 'rounded-bl-md bg-muted text-foreground',
               ]"
             >
-              {{ msg.time }}
-            </p>
+              <p
+                v-if="!isMyMessage(msg.sender_id) && msg.sender"
+                class="mb-0.5 text-xs font-medium text-primary/70"
+              >
+                {{ msg.sender.display_name ?? msg.sender.username }}
+              </p>
+              <p>{{ msg.content }}</p>
+              <p
+                :class="[
+                  'mt-1 text-right text-[10px]',
+                  isMyMessage(msg.sender_id)
+                    ? 'text-primary-foreground/70'
+                    : 'text-muted-foreground',
+                ]"
+              >
+                {{ formatMessageTime(msg.created_at) }}
+              </p>
+            </div>
           </div>
         </div>
       </div>

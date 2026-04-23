@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { PhEnvelope, PhLock, PhArrowRight } from '@phosphor-icons/vue'
 import Button from '@/components/ui/Button.vue'
@@ -11,14 +11,18 @@ const authStore = useAuthStore()
 
 const email = ref('')
 const password = ref('')
-const error = ref('')
+
+watch(
+  () => authStore.isAuthenticated,
+  (isAuth) => {
+    if (isAuth) router.push('/')
+  },
+)
 
 async function handleLogin() {
-  error.value = ''
+  authStore.clearError()
   const result = await authStore.signIn(email.value, password.value)
-  if (!result.success) {
-    error.value = 'Invalid email or password'
-  } else {
+  if (result.success) {
     router.push('/')
   }
 }
@@ -32,20 +36,20 @@ async function handleLogin() {
     </div>
 
     <form class="space-y-4" @submit.prevent="handleLogin">
-      <Input v-model="email" type="email" placeholder="Email address">
+      <Input v-model="email" type="email" placeholder="Email address" required>
         <template #prefix>
           <PhEnvelope :size="18" class="text-muted-foreground" />
         </template>
       </Input>
 
-      <Input v-model="password" type="password" placeholder="Password">
+      <Input v-model="password" type="password" placeholder="Password" required>
         <template #prefix>
           <PhLock :size="18" class="text-muted-foreground" />
         </template>
       </Input>
 
-      <p v-if="error" class="text-center text-sm text-destructive">
-        {{ error }}
+      <p v-if="authStore.authError" class="text-center text-sm text-destructive">
+        {{ authStore.authError }}
       </p>
 
       <Button type="submit" class="w-full" :disabled="authStore.isLoading">

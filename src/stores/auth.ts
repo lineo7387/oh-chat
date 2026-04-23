@@ -7,7 +7,10 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<{ id: string; email: string } | null>(null)
   const profile = ref<Profile | null>(null)
   const isLoading = ref(false)
+  const authError = ref<string | null>(null)
   const isAuthenticated = computed(() => !!user.value)
+
+  let _authSubscription: { unsubscribe: () => void } | null = null
 
   async function init() {
     const { data } = await supabase.auth.getSession()
@@ -19,31 +22,60 @@ export const useAuthStore = defineStore('auth', () => {
       await fetchProfile()
     }
 
-    supabase.auth.onAuthStateChange((event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
         user.value = { id: session.user.id, email: session.user.email! }
         fetchProfile()
       } else if (event === 'SIGNED_OUT') {
         user.value = null
         profile.value = null
+      } else if (event === 'USER_UPDATED' && session) {
+        user.value = { id: session.user.id, email: session.user.email! }
       }
     })
+    _authSubscription = authListener.subscription
+  }
+
+  function cleanup() {
+    _authSubscription?.unsubscribe()
+    _authSubscription = null
+  }
+
+  function clearError() {
+    authError.value = null
+  }
+
+  function getErrorMessage(error: unknown): string {
+    if (error && typeof error === 'object' && 'message' in error) {
+      return (error as { message: string }).message
+    }
+    return 'An unexpected error occurred'
   }
 
   async function signUp(email: string, password: string, username: string) {
     isLoading.value = true
+    authError.value = null
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: { username },
+          data: { username, display_name: username },
         },
       })
       if (error) throw error
-      return { success: true, data }
+
+      // If email confirmation is required, session will be null
+      if (!data.session) {
+        return { success: true as const, needsEmailConfirmation: true as const }
+      }
+
+      user.value = { id: data.user!.id, email: data.user!.email! }
+      await fetchProfile()
+      return { success: true as const, needsEmailConfirmation: false as const }
     } catch (error) {
-      return { success: false, error }
+      authError.value = getErrorMessage(error)
+      return { success: false as const, needsEmailConfirmation: false as const }
     } finally {
       isLoading.value = false
     }
@@ -51,6 +83,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function signIn(email: string, password: string) {
     isLoading.value = true
+    authError.value = null
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -59,9 +92,10 @@ export const useAuthStore = defineStore('auth', () => {
       if (error) throw error
       user.value = { id: data.user.id, email: data.user.email! }
       await fetchProfile()
-      return { success: true, data }
+      return { success: true as const }
     } catch (error) {
-      return { success: false, error }
+      authError.value = getErrorMessage(error)
+      return { success: false as const }
     } finally {
       isLoading.value = false
     }
@@ -70,12 +104,14 @@ export const useAuthStore = defineStore('auth', () => {
   async function signOut() {
     isLoading.value = true
     try {
-      await supabase.auth.signOut()
+      const { error } = await supabase.auth.signOut()
+      if (error) throw error
       user.value = null
       profile.value = null
-      return { success: true }
+      return { success: true as const }
     } catch (error) {
-      return { success: false, error }
+      authError.value = getErrorMessage(error)
+      return { success: false as const }
     } finally {
       isLoading.value = false
     }
@@ -83,8 +119,12 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function fetchProfile() {
     if (!user.value) return
-    const { data } = await supabase.from('profiles').select('*').eq('id', user.value.id).single()
-    if (data) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.value.id)
+      .single()
+    if (data && !error) {
       profile.value = data as Profile
     }
   }
@@ -93,8 +133,11 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     profile,
     isLoading,
+    authError,
     isAuthenticated,
     init,
+    cleanup,
+    clearError,
     signUp,
     signIn,
     signOut,
