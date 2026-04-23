@@ -46,7 +46,7 @@
 
 ## Pending
 
-- [ ] **Supabase database setup** — Create tables, RLS policies, realtime subscriptions
+- [x] **Supabase database setup** — Create tables, RLS policies, realtime subscriptions
 - [ ] **Real-time message sync** — Integrate Supabase Realtime for live messages
 - [ ] **File upload** — Attachment support via Supabase Storage
 - [ ] **OAuth authentication** — Google/GitHub login

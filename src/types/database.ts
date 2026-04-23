@@ -1,5 +1,11 @@
 export interface Database {
   public: {
+    Enums: {
+      user_status: 'online' | 'offline' | 'away'
+      conversation_type: 'direct' | 'group'
+      participant_role: 'owner' | 'admin' | 'member'
+      message_type: 'text' | 'image' | 'file'
+    }
     Tables: {
       profiles: {
         Row: {
