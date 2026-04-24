@@ -16,6 +16,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
 import Avatar from '@/components/ui/Avatar.vue'
 import GroupInfoPanel from '@/components/chat/GroupInfoPanel.vue'
+import EmojiPicker from '@/components/chat/EmojiPicker.vue'
 import type { Profile, Attachment } from '@/types'
 
 const route = useRoute()
@@ -24,6 +25,7 @@ const authStore = useAuthStore()
 const chatStore = useChatStore()
 
 const showGroupPanel = ref(false)
+const showEmojiPicker = ref(false)
 
 const conversationId = ref(route.params.conversationId as string)
 const messageText = ref('')
@@ -31,12 +33,33 @@ const messagesContainer = ref<HTMLElement | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
 const selectedFiles = ref<File[]>([])
 const isSending = ref(false)
+const unreadBoundaryIndex = ref(-1)
 
 // Set current conversation and fetch messages
 async function loadConversation(id: string) {
   chatStore.setCurrentConversation(id)
   await chatStore.fetchMessages(id)
+
+  // Capture unread boundary BEFORE marking as read, so the divider
+  // stays visible while the user is viewing this conversation.
+  const conv = chatStore.currentConversation
+  if (conv && conv.unreadCount > 0) {
+    const myParticipant = conv.participants.find((p) => p.user_id === authStore.user?.id)
+    if (myParticipant?.last_read_at) {
+      const lastRead = new Date(myParticipant.last_read_at).getTime()
+      unreadBoundaryIndex.value = chatStore.messages.findIndex(
+        (m) => new Date(m.created_at).getTime() > lastRead,
+      )
+    } else {
+      unreadBoundaryIndex.value = -1
+    }
+  } else {
+    unreadBoundaryIndex.value = -1
+  }
+
   scrollToBottom()
+  // Auto mark as read after loading messages
+  await chatStore.markAsRead(id)
 }
 
 function scrollToBottom() {
@@ -55,6 +78,7 @@ watch(
     if (newId && newId !== conversationId.value) {
       conversationId.value = newId
       selectedFiles.value = []
+      unreadBoundaryIndex.value = -1
       loadConversation(newId)
     }
   },
@@ -135,9 +159,15 @@ function isMyMessage(senderId: string | null): boolean {
   return senderId === authStore.user?.id
 }
 
+function insertEmoji(emoji: string) {
+  messageText.value += emoji
+  showEmojiPicker.value = false
+}
+
 function formatMessageTime(dateStr: string): string {
   return new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
+
 
 const conversationName = ref('Loading...')
 const conversationAvatar = ref<string | undefined>(undefined)
@@ -225,11 +255,22 @@ watch(
       </div>
 
       <div v-else class="space-y-4">
-        <div
-          v-for="msg in chatStore.messages"
+        <template
+          v-for="(msg, index) in chatStore.messages"
           :key="msg.id"
-          :class="isMyMessage(msg.sender_id) ? 'flex justify-end' : 'flex justify-start'"
         >
+          <!-- New messages boundary -->
+          <div
+            v-if="index === unreadBoundaryIndex"
+            class="flex items-center gap-3 py-2"
+          >
+            <div class="h-px flex-1 bg-secondary/30" />
+            <span class="shrink-0 text-[10px] font-medium uppercase tracking-wider text-secondary">New messages</span>
+            <div class="h-px flex-1 bg-secondary/30" />
+          </div>
+          <div
+            :class="isMyMessage(msg.sender_id) ? 'flex justify-end' : 'flex justify-start'"
+          >
           <div
             class="flex max-w-[80%] gap-2"
             :class="isMyMessage(msg.sender_id) ? 'flex-row-reverse' : ''"
@@ -305,7 +346,8 @@ watch(
               </p>
             </div>
           </div>
-        </div>
+          </div>
+        </template>
       </div>
     </div>
 
@@ -358,11 +400,18 @@ watch(
           @keydown.enter.prevent="sendMessage"
         />
 
-        <button
-          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-        >
-          <PhSmiley :size="20" />
-        </button>
+        <div class="relative">
+          <button
+            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            @click="showEmojiPicker = !showEmojiPicker"
+          >
+            <PhSmiley :size="20" />
+          </button>
+          <EmojiPicker
+            v-model="showEmojiPicker"
+            @select="insertEmoji"
+          />
+        </div>
 
         <button
           class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50"

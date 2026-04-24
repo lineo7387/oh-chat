@@ -13,6 +13,8 @@ export interface ConversationWithMeta extends Conversation {
 // Supabase query result helpers
 interface ConvParticipantRow {
   conversation_id: string
+  unread_count: number
+  last_read_at: string | null
 }
 
 interface LastMessageRow {
@@ -66,10 +68,10 @@ export const useChatStore = defineStore('chat', () => {
 
     isLoadingConversations.value = true
     try {
-      // 1. Get conversation IDs the user participates in
+      // 1. Get conversation IDs the user participates in + unread counts
       const { data: myParts, error: partsError } = await supabase
         .from('conversation_participants')
-        .select('conversation_id')
+        .select('conversation_id, unread_count, last_read_at')
         .eq('user_id', authStore.user.id)
         .returns<ConvParticipantRow[]>()
 
@@ -80,6 +82,7 @@ export const useChatStore = defineStore('chat', () => {
       }
 
       const ids = myParts.map((p) => p.conversation_id)
+      const myPartsMap = new Map(myParts.map((p) => [p.conversation_id, p]))
 
       // 2. Get conversations with participants and profiles
       const { data: convsData, error: convsError } = await supabase
@@ -124,10 +127,13 @@ export const useChatStore = defineStore('chat', () => {
           role: p.role as 'owner' | 'admin' | 'member',
           joined_at: p.joined_at as string,
           last_read_message_id: (p.last_read_message_id as string | null) ?? null,
+          unread_count: (p.unread_count as number) ?? 0,
+          last_read_at: (p.last_read_at as string | null) ?? null,
           profile: p.profile as Profile,
         }))
 
         const lastMsg = lastMsgMap.get(conv.id as string)
+        const myPart = myPartsMap.get(conv.id as string)
 
         return {
           ...(conv as unknown as Conversation),
@@ -140,7 +146,7 @@ export const useChatStore = defineStore('chat', () => {
                 sender_id: lastMsg.sender_id,
               }
             : undefined,
-          unreadCount: 0,
+          unreadCount: myPart?.unread_count ?? 0,
         }
       })
     } catch (error) {
@@ -152,6 +158,34 @@ export const useChatStore = defineStore('chat', () => {
 
   function setCurrentConversation(id: string | null) {
     currentConversationId.value = id
+  }
+
+  async function markAsRead(conversationId: string) {
+    const authStore = useAuthStore()
+    if (!authStore.user) return
+
+    const conv = conversations.value.find((c) => c.id === conversationId)
+    // Skip only if we can confirm it's already read locally
+    if (conv && conv.unreadCount === 0) return
+
+    try {
+      const { error } = await supabase.rpc('mark_conversation_as_read', {
+        p_conversation_id: conversationId,
+      })
+      if (error) throw error
+
+      // Optimistically update local state if conv exists
+      if (conv) {
+        conv.unreadCount = 0
+        const myParticipant = conv.participants.find((p) => p.user_id === authStore.user?.id)
+        if (myParticipant) {
+          myParticipant.unread_count = 0
+          myParticipant.last_read_at = new Date().toISOString()
+        }
+      }
+    } catch (error) {
+      console.error('Failed to mark as read:', error)
+    }
   }
 
   async function createDirectConversation(otherUserId: string) {
@@ -392,6 +426,7 @@ export const useChatStore = defineStore('chat', () => {
   // ── Realtime ───────────────────────────────────────────────
 
   let _messageChannel: ReturnType<typeof supabase.channel> | null = null
+  let _participantsChannel: ReturnType<typeof supabase.channel> | null = null
 
   function handleIncomingMessage(msg: Record<string, unknown>) {
     const authStore = useAuthStore()
@@ -441,6 +476,36 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  function handleParticipantUpdate(payload: Record<string, unknown>) {
+    const authStore = useAuthStore()
+    const newData = payload.new as Record<string, unknown> | undefined
+    if (!newData) return
+
+    const convId = newData.conversation_id as string
+    const userId = newData.user_id as string
+    if (userId !== authStore.user?.id) return
+
+    const conv = conversations.value.find((c) => c.id === convId)
+    if (!conv) return
+
+    const unreadCount = newData.unread_count as number
+
+    // For the currently viewed conversation, only accept decreases in unread count.
+    // This prevents stale Realtime events (from messages that arrived before we opened
+    // the conversation) from overwriting our optimistic mark-as-read update.
+    if (convId === currentConversationId.value && unreadCount >= conv.unreadCount) {
+      return
+    }
+
+    conv.unreadCount = unreadCount
+
+    const myParticipant = conv.participants.find((p) => p.user_id === userId)
+    if (myParticipant) {
+      myParticipant.unread_count = unreadCount
+      myParticipant.last_read_at = (newData.last_read_at as string | null) ?? myParticipant.last_read_at
+    }
+  }
+
   function subscribeToMessages() {
     if (_messageChannel) return
 
@@ -458,11 +523,31 @@ export const useChatStore = defineStore('chat', () => {
         },
       )
       .subscribe()
+
+    // Also subscribe to conversation_participants for unread_count updates
+    if (!_participantsChannel) {
+      _participantsChannel = supabase
+        .channel('conversation_participants')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'conversation_participants',
+          },
+          (payload) => {
+            handleParticipantUpdate(payload as Record<string, unknown>)
+          },
+        )
+        .subscribe()
+    }
   }
 
   function unsubscribeFromMessages() {
     _messageChannel?.unsubscribe()
     _messageChannel = null
+    _participantsChannel?.unsubscribe()
+    _participantsChannel = null
   }
 
   function getAttachmentUrl(storagePath: string): string {
@@ -492,5 +577,6 @@ export const useChatStore = defineStore('chat', () => {
     getAttachmentUrl,
     subscribeToMessages,
     unsubscribeFromMessages,
+    markAsRead,
   }
 })

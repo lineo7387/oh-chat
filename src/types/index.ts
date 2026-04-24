@@ -26,6 +26,8 @@ export interface ConversationParticipant {
   joined_at: string
   last_read_message_id: string | null
   role: 'owner' | 'admin' | 'member'
+  unread_count: number
+  last_read_at: string | null
   profile?: Profile
 }
 
@@ -34,7 +36,7 @@ export interface Message {
   conversation_id: string
   sender_id: string | null
   content: string
-  type: 'text' | 'image' | 'file'
+  type: 'text' | 'image' | 'file' | 'voice'
   reply_to_id: string | null
   is_deleted: boolean
   created_at: string
@@ -72,4 +74,14 @@ export interface Friend {
   updated_at: string
   sender?: Profile
   receiver?: Profile
+}
+
+export interface ConversationSettings {
+  user_id: string
+  conversation_id: string
+  custom_name: string | null
+  is_muted: boolean
+  is_pinned: boolean
+  pinned_at: string | null
+  updated_at: string
 }

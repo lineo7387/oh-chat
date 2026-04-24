@@ -4,7 +4,7 @@ export interface Database {
       user_status: 'online' | 'offline' | 'away'
       conversation_type: 'direct' | 'group'
       participant_role: 'owner' | 'admin' | 'member'
-      message_type: 'text' | 'image' | 'file'
+      message_type: 'text' | 'image' | 'file' | 'voice'
     }
     Tables: {
       profiles: {
@@ -80,6 +80,8 @@ export interface Database {
           joined_at: string
           last_read_message_id: string | null
           role: 'owner' | 'admin' | 'member'
+          unread_count: number
+          last_read_at: string | null
         }
         Insert: {
           conversation_id: string
@@ -87,6 +89,8 @@ export interface Database {
           joined_at?: string
           last_read_message_id?: string | null
           role?: 'owner' | 'admin' | 'member'
+          unread_count?: number
+          last_read_at?: string | null
         }
         Update: {
           conversation_id?: string
@@ -94,6 +98,8 @@ export interface Database {
           joined_at?: string
           last_read_message_id?: string | null
           role?: 'owner' | 'admin' | 'member'
+          unread_count?: number
+          last_read_at?: string | null
         }
         Relationships: []
       }
@@ -211,6 +217,36 @@ export interface Database {
         }
         Relationships: []
       }
+      conversation_settings: {
+        Row: {
+          user_id: string
+          conversation_id: string
+          custom_name: string | null
+          is_muted: boolean
+          is_pinned: boolean
+          pinned_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          conversation_id: string
+          custom_name?: string | null
+          is_muted?: boolean
+          is_pinned?: boolean
+          pinned_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          conversation_id?: string
+          custom_name?: string | null
+          is_muted?: boolean
+          is_pinned?: boolean
+          pinned_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: {
@@ -221,6 +257,10 @@ export interface Database {
       create_group_conversation: {
         Args: { p_title: string; p_member_ids: string[] }
         Returns: string
+      }
+      mark_conversation_as_read: {
+        Args: { p_conversation_id: string }
+        Returns: void
       }
     }
   }

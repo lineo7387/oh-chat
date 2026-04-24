@@ -166,16 +166,37 @@ function truncatePreview(text: string | undefined, max = 40): string {
           />
           <div class="min-w-0 flex-1">
             <div class="flex items-center justify-between">
-              <p class="truncate text-sm font-medium">
+              <p
+                :class="[
+                  'truncate text-sm',
+                  conv.unreadCount > 0 ? 'font-semibold text-foreground' : 'font-medium',
+                ]"
+              >
                 {{ chatStore.getConversationName(conv) }}
               </p>
-              <span v-if="conv.lastMessage" class="shrink-0 pl-2 text-[10px] text-muted-foreground">
+              <span
+                v-if="conv.lastMessage && conv.unreadCount === 0"
+                class="shrink-0 text-[10px] text-muted-foreground"
+              >
                 {{ formatTime(conv.lastMessage.created_at) }}
               </span>
             </div>
-            <p class="truncate text-xs text-muted-foreground">
-              {{ truncatePreview(conv.lastMessage?.content) }}
-            </p>
+            <div class="flex items-center justify-between">
+              <p
+                :class="[
+                  'truncate text-xs',
+                  conv.unreadCount > 0 ? 'font-medium text-foreground/80' : 'text-muted-foreground',
+                ]"
+              >
+                {{ truncatePreview(conv.lastMessage?.content) }}
+              </p>
+              <span
+                v-if="conv.unreadCount > 0"
+                class="flex h-4 min-w-[1rem] shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground"
+              >
+                {{ conv.unreadCount > 99 ? '99+' : conv.unreadCount }}
+              </span>
+            </div>
           </div>
         </RouterLink>
       </div>
