@@ -3,10 +3,12 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { PhList } from '@phosphor-icons/vue'
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
+import { useFriendStore } from '@/stores/friend'
 import Sidebar from '@/components/layout/Sidebar.vue'
 
 const authStore = useAuthStore()
 const chatStore = useChatStore()
+const friendStore = useFriendStore()
 
 const sidebarOpen = ref(false)
 
@@ -26,10 +28,15 @@ onMounted(async () => {
   // Load conversations and start realtime
   await chatStore.fetchConversations()
   chatStore.subscribeToMessages()
+  // Load friends and start realtime
+  friendStore.fetchFriends()
+  friendStore.fetchPendingRequests()
+  friendStore.subscribeToFriends()
 })
 
 onUnmounted(() => {
   chatStore.unsubscribeFromMessages()
+  friendStore.unsubscribeFromFriends()
 })
 </script>
 

@@ -41,6 +41,7 @@ export interface Message {
   updated_at: string
   sender?: Profile
   reactions?: MessageReaction[]
+  attachments?: Attachment[]
 }
 
 export interface MessageReaction {
@@ -58,4 +59,17 @@ export interface Attachment {
   file_size: number
   storage_path: string
   created_at: string
+}
+
+export type FriendStatus = 'pending' | 'accepted' | 'rejected'
+
+export interface Friend {
+  id: string
+  sender_id: string
+  receiver_id: string
+  status: FriendStatus
+  created_at: string
+  updated_at: string
+  sender?: Profile
+  receiver?: Profile
 }

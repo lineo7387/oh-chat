@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { PhUser, PhShield, PhPalette, PhSignOut } from '@phosphor-icons/vue'
+import { ref, watch } from 'vue'
+import { PhUser, PhShield, PhPalette, PhSignOut, PhCamera, PhSpinner } from '@phosphor-icons/vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import Button from '@/components/ui/Button.vue'
+import Avatar from '@/components/ui/Avatar.vue'
 
 type TabId = 'profile' | 'account' | 'appearance'
 
@@ -16,6 +17,59 @@ const tabs = [
   { id: 'account' as TabId, label: 'Account', icon: PhShield },
   { id: 'appearance' as TabId, label: 'Appearance', icon: PhPalette },
 ]
+
+// Profile form
+const displayName = ref(authStore.profile?.display_name || '')
+const bio = ref(authStore.profile?.bio || '')
+const isSaving = ref(false)
+const saveError = ref('')
+const fileInput = ref<HTMLInputElement | null>(null)
+const isUploading = ref(false)
+const uploadError = ref('')
+
+watch(
+  () => authStore.profile,
+  (p) => {
+    if (p) {
+      displayName.value = p.display_name || ''
+      bio.value = p.bio || ''
+    }
+  },
+  { immediate: true },
+)
+
+function triggerAvatarSelect() {
+  fileInput.value?.click()
+}
+
+async function onAvatarSelected(event: Event) {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+
+  isUploading.value = true
+  uploadError.value = ''
+  const result = await authStore.uploadAvatar(file)
+  isUploading.value = false
+  target.value = ''
+
+  if (!result.success) {
+    uploadError.value = result.error ?? 'Upload failed'
+  }
+}
+
+async function saveProfile() {
+  isSaving.value = true
+  saveError.value = ''
+  const result = await authStore.updateProfile({
+    display_name: displayName.value.trim() || null,
+    bio: bio.value.trim() || null,
+  })
+  isSaving.value = false
+  if (!result.success) {
+    saveError.value = result.error ?? 'Failed to save'
+  }
+}
 </script>
 
 <template>
@@ -54,10 +108,88 @@ const tabs = [
         <!-- Profile -->
         <div v-if="activeTab === 'profile'" class="max-w-lg space-y-6">
           <h2 class="font-heading text-xl font-semibold text-foreground">Profile</h2>
+
+          <!-- Avatar upload -->
+          <div class="flex flex-col items-center gap-3">
+            <button
+              class="group relative rounded-full transition-transform duration-200 hover:scale-105"
+              :disabled="isUploading"
+              @click="triggerAvatarSelect"
+            >
+              <Avatar
+                :src="authStore.profile?.avatar_url"
+                :alt="authStore.profile?.display_name ?? authStore.profile?.username"
+                size="xl"
+                :status="authStore.profile?.status"
+              />
+              <div
+                class="absolute inset-0 flex items-center justify-center rounded-full bg-foreground/40 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+              >
+                <PhCamera :size="28" class="text-white" weight="fill" />
+              </div>
+              <div
+                v-if="isUploading"
+                class="absolute inset-0 flex items-center justify-center rounded-full bg-foreground/50"
+              >
+                <PhSpinner :size="28" class="animate-spin text-white" />
+              </div>
+            </button>
+            <input
+              ref="fileInput"
+              type="file"
+              accept="image/*"
+              class="hidden"
+              @change="onAvatarSelected"
+            />
+            <p class="text-xs text-muted-foreground">Click avatar to upload (max 2MB)</p>
+            <p v-if="uploadError" class="text-sm text-destructive">{{ uploadError }}</p>
+          </div>
+
+          <!-- Form -->
           <div class="rounded-[2rem] border border-border/50 bg-card p-6 shadow-soft">
-            <p class="text-muted-foreground">
-              Profile settings will be available here. Edit your display name, avatar, and bio.
-            </p>
+            <div class="space-y-4">
+              <!-- Username (read-only) -->
+              <div>
+                <label class="mb-1.5 block text-sm font-medium text-foreground">Username</label>
+                <input
+                  :value="authStore.profile?.username"
+                  disabled
+                  class="h-11 w-full rounded-full border border-border bg-muted/50 px-4 text-sm text-muted-foreground focus:outline-none"
+                />
+                <p class="mt-1 text-xs text-muted-foreground">Username cannot be changed</p>
+              </div>
+
+              <!-- Display name -->
+              <div>
+                <label class="mb-1.5 block text-sm font-medium text-foreground">Display Name</label>
+                <input
+                  v-model="displayName"
+                  type="text"
+                  placeholder="How you appear to others"
+                  class="h-11 w-full rounded-full border border-border bg-white/50 px-4 text-sm text-foreground placeholder:text-muted-foreground transition-all focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </div>
+
+              <!-- Bio -->
+              <div>
+                <label class="mb-1.5 block text-sm font-medium text-foreground">Bio</label>
+                <textarea
+                  v-model="bio"
+                  rows="3"
+                  placeholder="Tell others a little about yourself"
+                  class="w-full rounded-2xl border border-border bg-white/50 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground transition-all focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </div>
+
+              <!-- Error -->
+              <p v-if="saveError" class="text-sm text-destructive">{{ saveError }}</p>
+
+              <!-- Save button -->
+              <Button class="w-full" :disabled="isSaving" @click="saveProfile">
+                <PhSpinner v-if="isSaving" :size="18" class="animate-spin" />
+                <span v-else>Save Profile</span>
+              </Button>
+            </div>
           </div>
         </div>
 

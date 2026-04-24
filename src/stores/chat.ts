@@ -2,7 +2,7 @@ import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { supabase } from '@/composables/useSupabase'
 import { useAuthStore } from './auth'
-import type { Conversation, ConversationParticipant, Message, Profile } from '@/types'
+import type { Conversation, ConversationParticipant, Message, Profile, Attachment } from '@/types'
 
 export interface ConversationWithMeta extends Conversation {
   participants: (ConversationParticipant & { profile: Profile })[]
@@ -23,15 +23,12 @@ interface LastMessageRow {
   sender_id: string | null
 }
 
-interface ConversationInsertResult {
-  id: string
-}
-
 export const useChatStore = defineStore('chat', () => {
   const conversations = ref<ConversationWithMeta[]>([])
   const currentConversationId = ref<string | null>(null)
   const messages = ref<Message[]>([])
-  const isLoading = ref(false)
+  const isLoadingConversations = ref(false)
+  const isLoadingMessages = ref(false)
 
   const currentConversation = computed(() => {
     return conversations.value.find((c) => c.id === currentConversationId.value) || null
@@ -67,7 +64,7 @@ export const useChatStore = defineStore('chat', () => {
     const authStore = useAuthStore()
     if (!authStore.user) return
 
-    isLoading.value = true
+    isLoadingConversations.value = true
     try {
       // 1. Get conversation IDs the user participates in
       const { data: myParts, error: partsError } = await supabase
@@ -91,7 +88,7 @@ export const useChatStore = defineStore('chat', () => {
           `*,
           participants:conversation_participants(
             user_id, role, joined_at, last_read_message_id,
-            profile:profiles(id, username, display_name, avatar_url, status)
+            profile:profiles!conversation_participants_user_id_fkey(id, username, display_name, avatar_url, status)
           )`,
         )
         .in('id', ids)
@@ -149,7 +146,7 @@ export const useChatStore = defineStore('chat', () => {
     } catch (error) {
       console.error('Failed to fetch conversations:', error)
     } finally {
-      isLoading.value = false
+      isLoadingConversations.value = false
     }
   }
 
@@ -161,77 +158,42 @@ export const useChatStore = defineStore('chat', () => {
     const authStore = useAuthStore()
     if (!authStore.user) return { success: false as const, error: 'Not authenticated' }
 
-    // Check if a direct conversation already exists between these two users
-    const { data: existing } = await supabase
-      .from('conversation_participants')
-      .select('conversation_id')
-      .eq('user_id', authStore.user.id)
-      .returns<ConvParticipantRow[]>()
+    try {
+      const { data: convId, error } = await supabase.rpc('create_direct_conversation' as never, {
+        p_other_user_id: otherUserId,
+      } as never)
 
-    if (existing?.length) {
-      const myConvIds = existing.map((e) => e.conversation_id)
-      const { data: mutual } = await supabase
-        .from('conversation_participants')
-        .select('conversation_id')
-        .eq('user_id', otherUserId)
-        .in('conversation_id', myConvIds)
-        .returns<ConvParticipantRow[]>()
-
-      if (mutual?.length) {
-        const mutualIds = mutual.map((m) => m.conversation_id)
-        const { data: directConvs } = await supabase
-          .from('conversations')
-          .select('id')
-          .in('id', mutualIds)
-          .eq('type', 'direct')
-          .returns<ConversationInsertResult[]>()
-
-        if (directConvs?.length && directConvs[0]) {
-          return {
-            success: true as const,
-            conversationId: directConvs[0].id,
-            isNew: false as const,
-          }
+      if (error) {
+        if (error.message.includes('already exists')) {
+          // RPC returns existing id, not error — but handle just in case
+          return { success: true as const, conversationId: convId ?? '', isNew: false as const }
         }
+        throw error
       }
-    }
 
-    // Create new direct conversation
-    const { data: newConv, error: convError } = await supabase
-      .from('conversations')
-      .insert({ type: 'direct', created_by: authStore.user.id })
-      .select()
-      .single()
-      .returns<ConversationInsertResult>()
+      if (!convId) {
+        return { success: false as const, error: 'Failed to create conversation' }
+      }
 
-    if (convError || !newConv) {
+      return { success: true as const, conversationId: convId, isNew: true as const }
+    } catch (error) {
+      console.error('Failed to create direct conversation:', error)
       return {
         success: false as const,
-        error: convError?.message ?? 'Failed to create conversation',
+        error: error instanceof Error ? error.message : 'Unknown error',
       }
     }
-
-    // Add both participants
-    const { error: partError } = await supabase.from('conversation_participants').insert([
-      { conversation_id: newConv.id, user_id: authStore.user.id, role: 'owner' },
-      { conversation_id: newConv.id, user_id: otherUserId, role: 'member' },
-    ])
-
-    if (partError) {
-      return { success: false as const, error: partError.message }
-    }
-
-    return { success: true as const, conversationId: newConv.id, isNew: true as const }
   }
 
   async function fetchMessages(conversationId: string) {
-    isLoading.value = true
+    isLoadingMessages.value = true
     try {
       const { data, error } = await supabase
         .from('messages')
         .select(
           `*,
-          sender:profiles(id, username, display_name, avatar_url, status)`,
+          sender:profiles!messages_sender_id_fkey(id, username, display_name, avatar_url, status),
+          attachments(id, message_id, file_name, file_type, file_size, storage_path, created_at)`,
         )
         .eq('conversation_id', conversationId)
         .eq('is_deleted', false)
@@ -242,31 +204,89 @@ export const useChatStore = defineStore('chat', () => {
       messages.value = (data ?? []).map((m: Record<string, unknown>) => ({
         ...(m as unknown as Message),
         sender: (m.sender as Profile) ?? undefined,
+        attachments: (m.attachments as Attachment[]) ?? undefined,
       }))
     } catch (error) {
       console.error('Failed to fetch messages:', error)
     } finally {
-      isLoading.value = false
+      isLoadingMessages.value = false
     }
   }
 
-  async function sendMessage(content: string) {
+  async function sendMessage(content: string, files?: File[]) {
     const authStore = useAuthStore()
-    if (!authStore.user || !currentConversationId.value) return { success: false as const }
+    if (!authStore.user || !currentConversationId.value)
+      return { success: false as const, error: 'Not authenticated' }
 
     try {
-      const { error } = await supabase.from('messages').insert({
-        conversation_id: currentConversationId.value,
-        sender_id: authStore.user.id,
-        content,
-        type: 'text',
-      })
+      // Determine message type based on files
+      let messageType: 'text' | 'image' | 'file' = 'text'
+      if (files && files.length > 0) {
+        const hasImage = files.some((f) => f.type.startsWith('image/'))
+        const hasNonImage = files.some((f) => !f.type.startsWith('image/'))
+        if (hasNonImage) messageType = 'file'
+        else if (hasImage) messageType = 'image'
+      }
 
-      if (error) throw error
+      // 1. Create the message
+      const { data: messageData, error: msgError } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: currentConversationId.value,
+          sender_id: authStore.user.id,
+          content,
+          type: messageType,
+        })
+        .select()
+        .single()
+
+      if (msgError || !messageData) throw msgError ?? new Error('Failed to create message')
+      const messageId = messageData.id as string
+
+      // Optimistically add message to current conversation
+      if (currentConversationId.value) {
+        messages.value.push({
+          ...(messageData as unknown as Message),
+          sender: authStore.profile as Profile,
+          attachments: [],
+        })
+      }
+
+      // 2. Upload files and create attachment records
+      if (files && files.length > 0) {
+        for (const file of files) {
+          const filePath = `${currentConversationId.value}/${messageId}/${file.name}`
+
+          const { error: uploadError } = await supabase.storage
+            .from('attachments')
+            .upload(filePath, file)
+
+          if (uploadError) {
+            console.error('Failed to upload file:', uploadError)
+            continue
+          }
+
+          const { error: attachError } = await supabase.from('attachments').insert({
+            message_id: messageId,
+            file_name: file.name,
+            file_type: file.type,
+            file_size: file.size,
+            storage_path: filePath,
+          })
+
+          if (attachError) {
+            console.error('Failed to create attachment record:', attachError)
+          }
+        }
+      }
+
       return { success: true as const }
     } catch (error) {
       console.error('Failed to send message:', error)
-      return { success: false as const }
+      return {
+        success: false as const,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }
     }
   }
 
@@ -279,18 +299,22 @@ export const useChatStore = defineStore('chat', () => {
     const convId = msg.conversation_id as string
     const senderId = msg.sender_id as string | null
 
-    // Add to current conversation messages
+    // Add to current conversation messages (skip if already present from optimistic update)
     if (convId === currentConversationId.value) {
-      const conv = conversations.value.find((c) => c.id === convId)
-      const sender = conv?.participants.find((p) => p.user_id === senderId)?.profile
-      messages.value.push({
-        ...(msg as unknown as Message),
-        sender: sender
-          ? sender
-          : senderId === authStore.user?.id
-            ? (authStore.profile as Profile)
-            : undefined,
-      })
+      const alreadyExists = messages.value.some((m) => m.id === (msg.id as string))
+      if (!alreadyExists) {
+        const conv = conversations.value.find((c) => c.id === convId)
+        const sender = conv?.participants.find((p) => p.user_id === senderId)?.profile
+        messages.value.push({
+          ...(msg as unknown as Message),
+          sender: sender
+            ? sender
+            : senderId === authStore.user?.id
+              ? (authStore.profile as Profile)
+              : undefined,
+          attachments: [],
+        })
+      }
     }
 
     // Update conversation list preview
@@ -312,6 +336,9 @@ export const useChatStore = defineStore('chat', () => {
       if (convId !== currentConversationId.value && senderId !== authStore.user?.id) {
         conv.unreadCount++
       }
+    } else {
+      // New conversation not yet in list — refresh to pick it up
+      fetchConversations()
     }
   }
 
@@ -339,12 +366,18 @@ export const useChatStore = defineStore('chat', () => {
     _messageChannel = null
   }
 
+  function getAttachmentUrl(storagePath: string): string {
+    const { data } = supabase.storage.from('attachments').getPublicUrl(storagePath)
+    return data.publicUrl
+  }
+
   return {
     conversations,
     currentConversationId,
     currentConversation,
     messages,
-    isLoading,
+    isLoadingConversations,
+    isLoadingMessages,
     fetchConversations,
     setCurrentConversation,
     createDirectConversation,
@@ -353,6 +386,7 @@ export const useChatStore = defineStore('chat', () => {
     getConversationName,
     getConversationAvatar,
     getConversationStatus,
+    getAttachmentUrl,
     subscribeToMessages,
     unsubscribeFromMessages,
   }

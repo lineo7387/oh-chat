@@ -44,12 +44,16 @@
 - [x] **Fix ESLint config** — Disable `vue/multi-word-component-names`, allow `_` prefix unused vars
 - [x] **Build verification** — pnpm run type-check, lint, format, build all pass
 
-## Pending
+## Completed (continued)
 
 - [x] **Supabase database setup** — Create tables, RLS policies, realtime subscriptions
 - [x] **Load real conversations** — Sidebar fetches and displays conversations from Supabase with participant info and last message preview
 - [x] **Real-time message sync** — Integrate Supabase Realtime for live messages
 - [x] **New conversation flow** — Search users and create direct conversations via NewConversationView
 - [x] **Real message loading & sending** — ChatView loads messages from DB and sends via Supabase
-- [ ] **File upload** — Attachment support via Supabase Storage
+- [x] **File upload** — Attachment support via Supabase Storage (Storage bucket, upload UI, image/file display in messages)
+- [x] **Friends system** — `friends` table + RLS, friend store, ContactsView with real data, friend requests (accept/decline), UserProfileView add-friend actions, Sidebar Contacts entry with badge
+
+## Pending
+
 - [ ] **OAuth authentication** — Google/GitHub login

@@ -130,3 +130,26 @@ pnpm type-check   # TypeScript 检查
 pnpm lint         # ESLint + oxlint
 pnpm format       # oxfmt 格式化
 ```
+
+## 新对话快速恢复
+
+如果你在新对话中继续本项目，请先读取本文件和 `openspec/changes/oh-chat-foundation/tasks.md`，然后执行 `git status` 确认当前分支状态。
+
+### 当前进度摘要（截至 2026/04/24）
+
+**已完成：**
+- 项目地基：Tailwind v4 设计系统、基础 UI 组件、布局、路由
+- Supabase 数据库：6 张表 + RLS 策略 + Realtime 配置 + 21 个 migrations
+- 真实 Auth：注册/登录/登出，邮箱确认流程，路由守卫
+- 实时消息同步：Sidebar 真实会话列表、ChatView 消息加载与发送、NewConversationView 搜索用户创建 direct 会话、Supabase Realtime 订阅
+- 文件上传：Supabase Storage attachments bucket，ChatView 附件上传/图片预览
+- 好友系统：friends 表 + RLS，好友请求（发送/接受/拒绝），ContactsView 与 UserProfileView
+
+**剩余任务：**
+- OAuth authentication — Google/GitHub 登录
+
+### 关键状态
+
+- Supabase 项目已初始化（`supabase/` 目录），migrations 已推送到远程数据库
+- `.env` 中配置了 `VITE_SUPABASE_URL` 和 `VITE_SUPABASE_ANON_KEY`
+- 数据库类型 `src/types/database.ts` 已包含 Relationships/Views/Functions 以支持 Supabase 类型推断

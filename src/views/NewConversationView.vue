@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   PhMagnifyingGlass,
@@ -7,11 +7,14 @@ import {
   PhChatCircleText,
   PhUser,
   PhSpinner,
+  PhUserPlus,
 } from '@phosphor-icons/vue'
 import { supabase } from '@/composables/useSupabase'
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
+import { useFriendStore } from '@/stores/friend'
 import Avatar from '@/components/ui/Avatar.vue'
+import Button from '@/components/ui/Button.vue'
 
 interface SearchResultUser {
   id: string
@@ -24,12 +27,15 @@ interface SearchResultUser {
 const router = useRouter()
 const authStore = useAuthStore()
 const chatStore = useChatStore()
+const friendStore = useFriendStore()
 
 const searchQuery = ref('')
 const searchResults = ref<SearchResultUser[]>([])
 const isSearching = ref(false)
-const selectedUserId = ref<string | null>(null)
 const isCreating = ref(false)
+const createError = ref('')
+const addingFriendId = ref<string | null>(null)
+const addFriendError = ref('')
 
 // Debounced search
 let searchTimeout: ReturnType<typeof setTimeout> | null = null
@@ -57,26 +63,31 @@ async function performSearch(query: string) {
   isSearching.value = false
 }
 
-function selectUser(id: string) {
-  selectedUserId.value = id
-}
-
-async function startConversation() {
-  if (!selectedUserId.value) return
+async function startConversation(userId: string) {
   isCreating.value = true
+  createError.value = ''
 
-  const result = await chatStore.createDirectConversation(selectedUserId.value)
+  const result = await chatStore.createDirectConversation(userId)
 
   if (result.success) {
-    // Refresh conversations list and navigate
     await chatStore.fetchConversations()
     router.push(`/chat/${result.conversationId}`)
+  } else {
+    createError.value = result.error ?? 'Failed to create conversation'
   }
 
   isCreating.value = false
 }
 
-const selectedUser = computed(() => searchResults.value.find((u) => u.id === selectedUserId.value))
+async function sendFriendRequest(userId: string) {
+  addingFriendId.value = userId
+  addFriendError.value = ''
+  const result = await friendStore.sendFriendRequest(userId)
+  addingFriendId.value = null
+  if (!result.success) {
+    addFriendError.value = result.error ?? 'Failed to send request'
+  }
+}
 </script>
 
 <template>
@@ -133,67 +144,52 @@ const selectedUser = computed(() => searchResults.value.find((u) => u.id === sel
 
       <!-- User list -->
       <div v-else class="space-y-1">
-        <button
+        <div
           v-for="user in searchResults"
           :key="user.id"
-          :class="[
-            'flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-all duration-200',
-            selectedUserId === user.id ? 'bg-primary/10' : 'hover:bg-muted',
-          ]"
-          @click="selectUser(user.id)"
+          class="flex items-center gap-3 rounded-2xl px-4 py-3 transition-all duration-200 hover:bg-muted"
         >
-          <Avatar
-            :src="user.avatar_url"
-            :alt="user.display_name ?? user.username"
-            size="md"
-            :status="user.status"
-          />
-          <div class="min-w-0 flex-1">
+          <RouterLink :to="`/contacts/${user.id}`">
+            <Avatar
+              :src="user.avatar_url"
+              :alt="user.display_name ?? user.username"
+              size="md"
+              :status="user.status"
+            />
+          </RouterLink>
+          <RouterLink :to="`/contacts/${user.id}`" class="min-w-0 flex-1">
             <p class="truncate font-medium text-foreground">
               {{ user.display_name ?? user.username }}
             </p>
             <p class="truncate text-xs text-muted-foreground">@{{ user.username }}</p>
-          </div>
-          <div
-            :class="[
-              'h-5 w-5 rounded-full border-2 transition-all duration-200',
-              selectedUserId === user.id ? 'border-primary bg-primary' : 'border-border',
-            ]"
-          >
-            <svg
-              v-if="selectedUserId === user.id"
-              class="h-full w-full text-primary-foreground"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="3"
+          </RouterLink>
+          <div class="flex items-center gap-1.5">
+            <Button
+              variant="ghost"
+              size="sm"
+              :disabled="addingFriendId === user.id"
+              @click="sendFriendRequest(user.id)"
             >
-              <path d="M5 12l5 5L20 7" />
-            </svg>
+              <PhSpinner v-if="addingFriendId === user.id" :size="16" class="animate-spin" />
+              <PhUserPlus v-else :size="16" weight="bold" />
+              <span class="text-xs">Add</span>
+            </Button>
+            <Button
+              size="sm"
+              :disabled="isCreating"
+              @click="startConversation(user.id)"
+            >
+              <PhChatCircleText :size="16" weight="fill" />
+              <span class="text-xs">Chat</span>
+            </Button>
           </div>
-        </button>
+        </div>
       </div>
     </div>
 
-    <!-- Footer action -->
-    <div class="border-t border-border/30 px-6 py-4">
-      <button
-        :disabled="!selectedUserId || isCreating"
-        class="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3 text-sm font-semibold text-primary-foreground transition-all duration-200 hover:shadow-hover disabled:opacity-50 disabled:hover:shadow-none"
-        @click="startConversation"
-      >
-        <PhSpinner v-if="isCreating" :size="18" class="animate-spin" />
-        <PhChatCircleText v-else :size="18" weight="fill" />
-        <span>
-          {{
-            isCreating
-              ? 'Creating...'
-              : selectedUser
-                ? `Chat with ${selectedUser.display_name ?? selectedUser.username}`
-                : 'Select a user'
-          }}
-        </span>
-      </button>
+    <!-- Error -->
+    <div v-if="createError || addFriendError" class="border-t border-border/30 px-6 py-3">
+      <p class="text-center text-sm text-destructive">{{ createError || addFriendError }}</p>
     </div>
   </div>
 </template>

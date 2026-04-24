@@ -1,29 +1,60 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { PhMagnifyingGlass, PhUserPlus } from '@phosphor-icons/vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import {
+  PhMagnifyingGlass,
+  PhUserPlus,
+  PhCheck,
+  PhX,
+  PhChatCircleDots,
+  PhUserMinus,
+  PhUser,
+} from '@phosphor-icons/vue'
+import { useFriendStore } from '@/stores/friend'
+import { useChatStore } from '@/stores/chat'
 import Avatar from '@/components/ui/Avatar.vue'
 
-interface Contact {
-  id: string
-  name: string
-  status: 'online' | 'offline' | 'away'
-  lastSeen?: string
-}
+const router = useRouter()
+const friendStore = useFriendStore()
+const chatStore = useChatStore()
 
 const searchQuery = ref('')
+const activeTab = ref<'friends' | 'requests'>('friends')
 
-const contacts = ref<Contact[]>([
-  { id: '1', name: 'Alice Chen', status: 'online' },
-  { id: '2', name: 'Bob Smith', status: 'away', lastSeen: '2h ago' },
-  { id: '3', name: 'Carol White', status: 'offline', lastSeen: '1d ago' },
-  { id: '4', name: 'David Park', status: 'online' },
-])
-
-const filteredContacts = computed(() => {
-  if (!searchQuery.value) return contacts.value
-  const q = searchQuery.value.toLowerCase()
-  return contacts.value.filter((c) => c.name.toLowerCase().includes(q))
+onMounted(() => {
+  friendStore.fetchFriends()
+  friendStore.fetchPendingRequests()
 })
+
+const filteredFriends = computed(() => {
+  if (!searchQuery.value) return friendStore.friends
+  const q = searchQuery.value.toLowerCase()
+  return friendStore.friends.filter(
+    (f) =>
+      f.otherProfile.display_name?.toLowerCase().includes(q) ||
+      f.otherProfile.username.toLowerCase().includes(q),
+  )
+})
+
+async function acceptRequest(friendId: string) {
+  await friendStore.acceptFriendRequest(friendId)
+}
+
+async function rejectRequest(friendId: string) {
+  await friendStore.rejectFriendRequest(friendId)
+}
+
+async function removeFriend(friendId: string) {
+  await friendStore.removeFriend(friendId)
+}
+
+async function startChat(userId: string) {
+  const result = await chatStore.createDirectConversation(userId)
+  if (result.success) {
+    await chatStore.fetchConversations()
+    router.push(`/chat/${result.conversationId}`)
+  }
+}
 </script>
 
 <template>
@@ -33,7 +64,12 @@ const filteredContacts = computed(() => {
       <div class="flex items-center justify-between">
         <div>
           <h1 class="font-heading text-2xl font-bold text-foreground">Contacts</h1>
-          <p class="mt-1 text-sm text-muted-foreground">{{ contacts.length }} contacts</p>
+          <p class="mt-1 text-sm text-muted-foreground">
+            {{ friendStore.friends.length }} friends
+            <span v-if="friendStore.pendingCount > 0" class="ml-1 text-secondary">
+              · {{ friendStore.pendingCount }} pending
+            </span>
+          </p>
         </div>
         <RouterLink
           to="/new-conversation"
@@ -44,42 +80,206 @@ const filteredContacts = computed(() => {
       </div>
     </div>
 
-    <!-- Search -->
-    <div class="px-6 py-4">
-      <div
-        class="flex items-center gap-3 rounded-full border border-border bg-white/50 px-4 py-2.5"
+    <!-- Tabs -->
+    <div class="flex border-b border-border/30 px-6">
+      <button
+        class="relative px-4 py-3 text-sm font-medium transition-colors"
+        :class="activeTab === 'friends' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'"
+        @click="activeTab = 'friends'"
       >
+        Friends
+        <div
+          v-if="activeTab === 'friends'"
+          class="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-primary"
+        />
+      </button>
+      <button
+        class="relative px-4 py-3 text-sm font-medium transition-colors"
+        :class="activeTab === 'requests' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'"
+        @click="activeTab = 'requests'"
+      >
+        Requests
+        <span
+          v-if="friendStore.pendingCount > 0"
+          class="ml-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-secondary px-1.5 text-[10px] font-bold text-white"
+        >
+          {{ friendStore.pendingCount }}
+        </span>
+        <div
+          v-if="activeTab === 'requests'"
+          class="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-primary"
+        />
+      </button>
+    </div>
+
+    <!-- Search (friends tab only) -->
+    <div v-if="activeTab === 'friends'" class="px-6 py-4">
+      <div class="flex items-center gap-3 rounded-full border border-border bg-white/50 px-4 py-2.5">
         <PhMagnifyingGlass :size="18" class="text-muted-foreground" />
         <input
           v-model="searchQuery"
           type="text"
-          placeholder="Search contacts..."
+          placeholder="Search friends..."
           class="min-w-0 flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
         />
       </div>
     </div>
 
-    <!-- List -->
+    <!-- Content -->
     <div class="flex-1 overflow-y-auto px-4">
-      <div class="space-y-1">
-        <RouterLink
-          v-for="contact in filteredContacts"
-          :key="contact.id"
-          :to="`/contacts/${contact.id}`"
-          class="flex items-center gap-3 rounded-2xl px-4 py-3 transition-all duration-200 hover:bg-muted"
-        >
-          <Avatar :alt="contact.name" :status="contact.status" size="md" />
-          <div class="min-w-0 flex-1">
-            <p class="truncate font-medium text-foreground">
-              {{ contact.name }}
-            </p>
-            <p class="text-xs text-muted-foreground">
-              <template v-if="contact.status === 'online'">Online</template>
-              <template v-else-if="contact.lastSeen">Last seen {{ contact.lastSeen }}</template>
-              <template v-else>Offline</template>
-            </p>
+      <div v-if="friendStore.isLoading" class="space-y-2 py-4">
+        <div v-for="i in 3" :key="i" class="flex animate-pulse items-center gap-3 rounded-2xl px-4 py-3">
+          <div class="h-10 w-10 shrink-0 rounded-full bg-muted" />
+          <div class="min-w-0 flex-1 space-y-1.5">
+            <div class="h-3 w-24 rounded bg-muted" />
+            <div class="h-2.5 w-32 rounded bg-muted/60" />
           </div>
-        </RouterLink>
+        </div>
+      </div>
+
+      <!-- Friends tab -->
+      <div v-else-if="activeTab === 'friends'" class="py-2">
+        <div
+          v-if="filteredFriends.length === 0"
+          class="flex flex-col items-center justify-center py-16 text-center"
+        >
+          <PhUser :size="40" class="mb-3 text-muted-foreground/30" />
+          <p class="text-sm text-muted-foreground">
+            {{ searchQuery ? 'No friends match your search' : 'No friends yet' }}
+          </p>
+          <RouterLink
+            v-if="!searchQuery"
+            to="/new-conversation"
+            class="mt-3 text-sm text-primary hover:underline"
+          >
+            Find people to add
+          </RouterLink>
+        </div>
+
+        <div v-else class="space-y-1">
+          <div
+            v-for="friend in filteredFriends"
+            :key="friend.id"
+            class="flex items-center gap-3 rounded-2xl px-4 py-3 transition-all duration-200 hover:bg-muted"
+          >
+            <RouterLink :to="`/contacts/${friend.otherProfile.id}`">
+              <Avatar
+                :src="friend.otherProfile.avatar_url"
+                :alt="friend.otherProfile.display_name ?? friend.otherProfile.username"
+                size="md"
+                :status="friend.otherProfile.status"
+              />
+            </RouterLink>
+            <RouterLink :to="`/contacts/${friend.otherProfile.id}`" class="min-w-0 flex-1">
+              <p class="truncate font-medium text-foreground">
+                {{ friend.otherProfile.display_name ?? friend.otherProfile.username }}
+              </p>
+              <p class="truncate text-xs text-muted-foreground">
+                @{{ friend.otherProfile.username }}
+              </p>
+            </RouterLink>
+            <div class="flex items-center gap-1">
+              <button
+                class="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                title="Send message"
+                @click="startChat(friend.otherProfile.id)"
+              >
+                <PhChatCircleDots :size="18" />
+              </button>
+              <button
+                class="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                title="Remove friend"
+                @click="removeFriend(friend.id)"
+              >
+                <PhUserMinus :size="18" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Requests tab -->
+      <div v-else class="py-2">
+        <div
+          v-if="friendStore.pendingRequests.length === 0"
+          class="flex flex-col items-center justify-center py-16 text-center"
+        >
+          <PhUser :size="40" class="mb-3 text-muted-foreground/30" />
+          <p class="text-sm text-muted-foreground">No pending friend requests</p>
+        </div>
+
+        <div v-else class="space-y-1">
+          <div
+            v-for="request in friendStore.pendingRequests"
+            :key="request.id"
+            class="flex items-center gap-3 rounded-2xl px-4 py-3 transition-all duration-200 hover:bg-muted"
+          >
+            <RouterLink :to="`/contacts/${request.otherProfile.id}`">
+              <Avatar
+                :src="request.otherProfile.avatar_url"
+                :alt="request.otherProfile.display_name ?? request.otherProfile.username"
+                size="md"
+                :status="request.otherProfile.status"
+              />
+            </RouterLink>
+            <RouterLink :to="`/contacts/${request.otherProfile.id}`" class="min-w-0 flex-1">
+              <p class="truncate font-medium text-foreground">
+                {{ request.otherProfile.display_name ?? request.otherProfile.username }}
+              </p>
+              <p class="truncate text-xs text-muted-foreground">
+                @{{ request.otherProfile.username }}
+              </p>
+            </RouterLink>
+            <div class="flex items-center gap-1">
+              <button
+                class="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90"
+                title="Accept"
+                @click="acceptRequest(request.id)"
+              >
+                <PhCheck :size="18" weight="bold" />
+              </button>
+              <button
+                class="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                title="Decline"
+                @click="rejectRequest(request.id)"
+              >
+                <PhX :size="18" weight="bold" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sent requests section -->
+        <div v-if="friendStore.sentRequests.length > 0" class="mt-6">
+          <p class="px-4 pb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Sent
+          </p>
+          <div class="space-y-1">
+            <div
+              v-for="request in friendStore.sentRequests"
+              :key="request.id"
+              class="flex items-center gap-3 rounded-2xl px-4 py-3"
+            >
+              <Avatar
+                :src="request.otherProfile.avatar_url"
+                :alt="request.otherProfile.display_name ?? request.otherProfile.username"
+                size="md"
+                :status="request.otherProfile.status"
+              />
+              <div class="min-w-0 flex-1">
+                <p class="truncate font-medium text-foreground">
+                  {{ request.otherProfile.display_name ?? request.otherProfile.username }}
+                </p>
+                <p class="truncate text-xs text-muted-foreground">
+                  @{{ request.otherProfile.username }}
+                </p>
+              </div>
+              <span class="rounded-full bg-accent px-3 py-1 text-xs text-foreground/70">
+                Pending
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

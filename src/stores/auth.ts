@@ -129,6 +129,54 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function updateProfile(updates: Partial<Pick<Profile, 'display_name' | 'bio' | 'avatar_url'>>) {
+    if (!user.value) return { success: false as const, error: 'Not authenticated' }
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', user.value.id)
+      if (error) throw error
+      await fetchProfile()
+      return { success: true as const }
+    } catch (error) {
+      return {
+        success: false as const,
+        error: error instanceof Error ? error.message : 'Failed to update profile',
+      }
+    }
+  }
+
+  async function uploadAvatar(file: File) {
+    if (!user.value) return { success: false as const, error: 'Not authenticated' }
+
+    if (!file.type.startsWith('image/')) {
+      return { success: false as const, error: 'Please select an image file' }
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      return { success: false as const, error: 'Image must be under 2MB' }
+    }
+
+    const ext = file.name.split('.').pop() || 'png'
+    const filePath = `avatars/${user.value.id}/${Date.now()}.${ext}`
+
+    try {
+      const { error: uploadError } = await supabase.storage
+        .from('attachments')
+        .upload(filePath, file)
+
+      if (uploadError) throw uploadError
+
+      const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(filePath)
+      return await updateProfile({ avatar_url: urlData.publicUrl })
+    } catch (error) {
+      return {
+        success: false as const,
+        error: error instanceof Error ? error.message : 'Failed to upload avatar',
+      }
+    }
+  }
+
   return {
     user,
     profile,
@@ -142,5 +190,7 @@ export const useAuthStore = defineStore('auth', () => {
     signIn,
     signOut,
     fetchProfile,
+    updateProfile,
+    uploadAvatar,
   }
 })

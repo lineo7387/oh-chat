@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, watch, onMounted } from 'vue'
-import { PhMagnifyingGlass, PhPlus, PhGear, PhX, PhChatCircle } from '@phosphor-icons/vue'
+import { PhMagnifyingGlass, PhPlus, PhGear, PhX, PhChatCircle, PhUsers } from '@phosphor-icons/vue'
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
+import { useFriendStore } from '@/stores/friend'
 import Avatar from '@/components/ui/Avatar.vue'
 
 defineProps<{
@@ -15,6 +16,7 @@ const emit = defineEmits<{
 
 const authStore = useAuthStore()
 const chatStore = useChatStore()
+const friendStore = useFriendStore()
 
 function close() {
   emit('close')
@@ -118,7 +120,7 @@ function truncatePreview(text: string | undefined, max = 40): string {
     <!-- Conversation list -->
     <div class="flex-1 overflow-y-auto px-2">
       <!-- Loading -->
-      <div v-if="chatStore.isLoading" class="space-y-2 py-2">
+      <div v-if="chatStore.isLoadingConversations" class="space-y-2 py-2">
         <div
           v-for="i in 4"
           :key="i"
@@ -188,6 +190,19 @@ function truncatePreview(text: string | undefined, max = 40): string {
       >
         <PhPlus :size="18" weight="bold" />
         <span>New Chat</span>
+      </RouterLink>
+      <RouterLink
+        to="/contacts"
+        class="relative flex h-10 w-10 items-center justify-center rounded-full border border-border bg-white/50 text-foreground transition-all duration-200 hover:bg-muted hover:scale-105 active:scale-95"
+        @click="close"
+      >
+        <PhUsers :size="18" />
+        <span
+          v-if="friendStore.pendingCount > 0"
+          class="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-white"
+        >
+          {{ friendStore.pendingCount }}
+        </span>
       </RouterLink>
       <RouterLink
         to="/settings"

@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 interface Props {
   src?: string | null
   alt?: string
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'sm' | 'md' | 'lg' | 'xl'
   status?: 'online' | 'offline' | 'away' | null
   class?: string
 }
@@ -21,6 +21,7 @@ const sizeClasses = {
   sm: 'h-8 w-8',
   md: 'h-10 w-10',
   lg: 'h-14 w-14',
+  xl: 'h-24 w-24',
 }
 
 const statusColor = computed(() => {
@@ -53,7 +54,7 @@ const fallbackLetter = computed(() => {
         {{ fallbackLetter }}
       </div>
       <div v-else class="flex h-full w-full items-center justify-center text-primary">
-        <PhUser :size="size === 'lg' ? 28 : size === 'md' ? 20 : 16" weight="fill" />
+        <PhUser :size="size === 'xl' ? 40 : size === 'lg' ? 28 : size === 'md' ? 20 : 16" weight="fill" />
       </div>
     </div>
     <span
@@ -61,7 +62,7 @@ const fallbackLetter = computed(() => {
       :class="
         cn(
           'absolute bottom-0 right-0 block rounded-full border-2 border-card ring-1 ring-border/30',
-          size === 'lg' ? 'h-3.5 w-3.5' : 'h-2.5 w-2.5',
+          size === 'xl' ? 'h-5 w-5' : size === 'lg' ? 'h-3.5 w-3.5' : 'h-2.5 w-2.5',
           statusColor,
         )
       "
