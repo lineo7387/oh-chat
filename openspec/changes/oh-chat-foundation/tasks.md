@@ -54,6 +54,14 @@
 - [x] **File upload** — Attachment support via Supabase Storage (Storage bucket, upload UI, image/file display in messages)
 - [x] **Friends system** — `friends` table + RLS, friend store, ContactsView with real data, friend requests (accept/decline), UserProfileView add-friend actions, Sidebar Contacts entry with badge
 
+## Completed (continued)
+
+- [x] **OAuth authentication** — Google/GitHub login via `signInWithOAuth`, buttons added to LoginView and RegisterView with inline SVG icons, `redirectTo: window.location.origin`
+
+## Completed (continued)
+
+- [x] **Group chat** — `create_group_conversation` RPC, dual-mode NewConversationView (Direct/Group), group creation with multi-select members + title, GroupInfoPanel slide-over in ChatView with member list, add member, edit group name (owner/admin), leave group. Database types updated with RPC signatures.
+
 ## Pending
 
-- [ ] **OAuth authentication** — Google/GitHub login
+- [ ] All tasks complete

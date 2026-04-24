@@ -84,7 +84,11 @@ async function startChat(userId: string) {
     <div class="flex border-b border-border/30 px-6">
       <button
         class="relative px-4 py-3 text-sm font-medium transition-colors"
-        :class="activeTab === 'friends' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'"
+        :class="
+          activeTab === 'friends'
+            ? 'text-foreground'
+            : 'text-muted-foreground hover:text-foreground'
+        "
         @click="activeTab = 'friends'"
       >
         Friends
@@ -95,7 +99,11 @@ async function startChat(userId: string) {
       </button>
       <button
         class="relative px-4 py-3 text-sm font-medium transition-colors"
-        :class="activeTab === 'requests' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'"
+        :class="
+          activeTab === 'requests'
+            ? 'text-foreground'
+            : 'text-muted-foreground hover:text-foreground'
+        "
         @click="activeTab = 'requests'"
       >
         Requests
@@ -114,7 +122,9 @@ async function startChat(userId: string) {
 
     <!-- Search (friends tab only) -->
     <div v-if="activeTab === 'friends'" class="px-6 py-4">
-      <div class="flex items-center gap-3 rounded-full border border-border bg-white/50 px-4 py-2.5">
+      <div
+        class="flex items-center gap-3 rounded-full border border-border bg-white/50 px-4 py-2.5"
+      >
         <PhMagnifyingGlass :size="18" class="text-muted-foreground" />
         <input
           v-model="searchQuery"
@@ -128,7 +138,11 @@ async function startChat(userId: string) {
     <!-- Content -->
     <div class="flex-1 overflow-y-auto px-4">
       <div v-if="friendStore.isLoading" class="space-y-2 py-4">
-        <div v-for="i in 3" :key="i" class="flex animate-pulse items-center gap-3 rounded-2xl px-4 py-3">
+        <div
+          v-for="i in 3"
+          :key="i"
+          class="flex animate-pulse items-center gap-3 rounded-2xl px-4 py-3"
+        >
           <div class="h-10 w-10 shrink-0 rounded-full bg-muted" />
           <div class="min-w-0 flex-1 space-y-1.5">
             <div class="h-3 w-24 rounded bg-muted" />

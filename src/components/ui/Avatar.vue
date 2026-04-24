@@ -54,7 +54,10 @@ const fallbackLetter = computed(() => {
         {{ fallbackLetter }}
       </div>
       <div v-else class="flex h-full w-full items-center justify-center text-primary">
-        <PhUser :size="size === 'xl' ? 40 : size === 'lg' ? 28 : size === 'md' ? 20 : 16" weight="fill" />
+        <PhUser
+          :size="size === 'xl' ? 40 : size === 'lg' ? 28 : size === 'md' ? 20 : 16"
+          weight="fill"
+        />
       </div>
     </div>
     <span

@@ -159,9 +159,9 @@ export const useChatStore = defineStore('chat', () => {
     if (!authStore.user) return { success: false as const, error: 'Not authenticated' }
 
     try {
-      const { data: convId, error } = await supabase.rpc('create_direct_conversation' as never, {
+      const { data: convId, error } = await supabase.rpc('create_direct_conversation', {
         p_other_user_id: otherUserId,
-      } as never)
+      })
 
       if (error) {
         if (error.message.includes('already exists')) {
@@ -178,6 +178,105 @@ export const useChatStore = defineStore('chat', () => {
       return { success: true as const, conversationId: convId, isNew: true as const }
     } catch (error) {
       console.error('Failed to create direct conversation:', error)
+      return {
+        success: false as const,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }
+    }
+  }
+
+  async function createGroupConversation(title: string, memberIds: string[]) {
+    const authStore = useAuthStore()
+    if (!authStore.user) return { success: false as const, error: 'Not authenticated' }
+
+    try {
+      const { data: convId, error } = await supabase.rpc('create_group_conversation', {
+        p_title: title,
+        p_member_ids: memberIds,
+      })
+
+      if (error) throw error
+      if (!convId) {
+        return { success: false as const, error: 'Failed to create group' }
+      }
+
+      return { success: true as const, conversationId: convId }
+    } catch (error) {
+      console.error('Failed to create group conversation:', error)
+      return {
+        success: false as const,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }
+    }
+  }
+
+  async function addGroupMembers(conversationId: string, userIds: string[]) {
+    const authStore = useAuthStore()
+    if (!authStore.user) return { success: false as const, error: 'Not authenticated' }
+    if (userIds.length === 0) return { success: true as const }
+
+    try {
+      const rows = userIds.map((uid) => ({
+        conversation_id: conversationId,
+        user_id: uid,
+        role: 'member' as const,
+      }))
+      const { error } = await supabase.from('conversation_participants').insert(rows)
+      if (error) throw error
+
+      // Refresh local participants
+      await fetchConversations()
+      return { success: true as const }
+    } catch (error) {
+      console.error('Failed to add group members:', error)
+      return {
+        success: false as const,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }
+    }
+  }
+
+  async function removeGroupMember(conversationId: string, userId: string) {
+    const authStore = useAuthStore()
+    if (!authStore.user) return { success: false as const, error: 'Not authenticated' }
+
+    try {
+      const { error } = await supabase
+        .from('conversation_participants')
+        .delete()
+        .eq('conversation_id', conversationId)
+        .eq('user_id', userId)
+      if (error) throw error
+
+      // Refresh local state
+      await fetchConversations()
+      return { success: true as const }
+    } catch (error) {
+      console.error('Failed to remove group member:', error)
+      return {
+        success: false as const,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }
+    }
+  }
+
+  async function updateGroupTitle(conversationId: string, title: string) {
+    const authStore = useAuthStore()
+    if (!authStore.user) return { success: false as const, error: 'Not authenticated' }
+
+    try {
+      const { error } = await supabase
+        .from('conversations')
+        .update({ title })
+        .eq('id', conversationId)
+      if (error) throw error
+
+      // Update local state
+      const conv = conversations.value.find((c) => c.id === conversationId)
+      if (conv) conv.title = title
+      return { success: true as const }
+    } catch (error) {
+      console.error('Failed to update group title:', error)
       return {
         success: false as const,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -381,6 +480,10 @@ export const useChatStore = defineStore('chat', () => {
     fetchConversations,
     setCurrentConversation,
     createDirectConversation,
+    createGroupConversation,
+    addGroupMembers,
+    removeGroupMember,
+    updateGroupTitle,
     fetchMessages,
     sendMessage,
     getConversationName,

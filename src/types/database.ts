@@ -213,6 +213,15 @@ export interface Database {
       }
     }
     Views: Record<string, never>
-    Functions: Record<string, never>
+    Functions: {
+      create_direct_conversation: {
+        Args: { p_other_user_id: string }
+        Returns: string
+      }
+      create_group_conversation: {
+        Args: { p_title: string; p_member_ids: string[] }
+        Returns: string
+      }
+    }
   }
 }

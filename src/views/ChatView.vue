@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, nextTick, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import {
   PhArrowLeft,
   PhDotsThreeVertical,
@@ -15,11 +15,15 @@ import {
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
 import Avatar from '@/components/ui/Avatar.vue'
+import GroupInfoPanel from '@/components/chat/GroupInfoPanel.vue'
 import type { Profile, Attachment } from '@/types'
 
 const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 const chatStore = useChatStore()
+
+const showGroupPanel = ref(false)
 
 const conversationId = ref(route.params.conversationId as string)
 const messageText = ref('')
@@ -175,12 +179,19 @@ watch(
           {{ conversationName }}
         </h2>
         <p class="text-xs text-muted-foreground">
-          {{ conversationStatus ? `${conversationStatus}` : '' }}
+          <template v-if="chatStore.currentConversation?.type === 'group'">
+            {{ chatStore.currentConversation?.participants.length ?? 0 }} members
+          </template>
+          <template v-else>
+            {{ conversationStatus ? `${conversationStatus}` : '' }}
+          </template>
         </p>
       </div>
 
       <button
+        v-if="chatStore.currentConversation?.type === 'group'"
         class="flex h-10 w-10 items-center justify-center rounded-full transition-all duration-200 hover:bg-muted"
+        @click="showGroupPanel = true"
       >
         <PhDotsThreeVertical :size="22" class="text-foreground" />
       </button>
@@ -362,5 +373,13 @@ watch(
         </button>
       </div>
     </div>
+
+    <!-- Group Info Panel -->
+    <GroupInfoPanel
+      :conversation="chatStore.currentConversation"
+      :is-open="showGroupPanel"
+      @close="showGroupPanel = false"
+      @left="router.push('/')"
+    />
   </div>
 </template>

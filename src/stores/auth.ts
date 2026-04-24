@@ -101,6 +101,27 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function signInWithOAuth(provider: 'google' | 'github') {
+    isLoading.value = true
+    authError.value = null
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: window.location.origin,
+        },
+      })
+      if (error) throw error
+      // Redirect happens externally; success is determined on callback
+      return { success: true as const }
+    } catch (error) {
+      authError.value = getErrorMessage(error)
+      return { success: false as const }
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   async function signOut() {
     isLoading.value = true
     try {
@@ -129,13 +150,12 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function updateProfile(updates: Partial<Pick<Profile, 'display_name' | 'bio' | 'avatar_url'>>) {
+  async function updateProfile(
+    updates: Partial<Pick<Profile, 'display_name' | 'bio' | 'avatar_url'>>,
+  ) {
     if (!user.value) return { success: false as const, error: 'Not authenticated' }
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', user.value.id)
+      const { error } = await supabase.from('profiles').update(updates).eq('id', user.value.id)
       if (error) throw error
       await fetchProfile()
       return { success: true as const }
@@ -188,6 +208,7 @@ export const useAuthStore = defineStore('auth', () => {
     clearError,
     signUp,
     signIn,
+    signInWithOAuth,
     signOut,
     fetchProfile,
     updateProfile,

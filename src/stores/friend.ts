@@ -77,7 +77,7 @@ export const useFriendStore = defineStore('friend', () => {
       pendingRequests.value = (received ?? []).map((row: Record<string, unknown>) => ({
         ...(row as unknown as Friend),
         sender: (row.sender as Profile) ?? undefined,
-        otherProfile: (row.sender as Profile) as Profile,
+        otherProfile: row.sender as Profile as Profile,
       }))
 
       // Requests sent by current user
@@ -95,7 +95,7 @@ export const useFriendStore = defineStore('friend', () => {
       sentRequests.value = (sent ?? []).map((row: Record<string, unknown>) => ({
         ...(row as unknown as Friend),
         receiver: (row.receiver as Profile) ?? undefined,
-        otherProfile: (row.receiver as Profile) as Profile,
+        otherProfile: row.receiver as Profile as Profile,
       }))
     } catch (error) {
       console.error('Failed to fetch pending requests:', error)
@@ -212,7 +212,11 @@ export const useFriendStore = defineStore('friend', () => {
 
   let _friendChannel: ReturnType<typeof supabase.channel> | null = null
 
-  function handleFriendChange(payload: { eventType: string; new: Record<string, unknown>; old: Record<string, unknown> }) {
+  function handleFriendChange(payload: {
+    eventType: string
+    new: Record<string, unknown>
+    old: Record<string, unknown>
+  }) {
     const authId = authStore.user?.id
     if (!authId) return
 
@@ -254,7 +258,13 @@ export const useFriendStore = defineStore('friend', () => {
           table: 'friends',
         },
         (payload) => {
-          handleFriendChange(payload as { eventType: string; new: Record<string, unknown>; old: Record<string, unknown> })
+          handleFriendChange(
+            payload as {
+              eventType: string
+              new: Record<string, unknown>
+              old: Record<string, unknown>
+            },
+          )
         },
       )
       .subscribe()

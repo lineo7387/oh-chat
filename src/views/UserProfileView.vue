@@ -40,7 +40,9 @@ async function loadProfile(id: string) {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, username, display_name, avatar_url, bio, status, last_seen, created_at, updated_at')
+    .select(
+      'id, username, display_name, avatar_url, bio, status, last_seen, created_at, updated_at',
+    )
     .eq('id', id)
     .single()
 
