@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   PhArrowLeft,
@@ -9,11 +9,16 @@ import {
   PhX,
   PhUserMinus,
   PhSpinner,
+  PhPushPin,
+  PhBell,
+  PhBellSlash,
+  PhPencilSimple,
 } from '@phosphor-icons/vue'
 import { supabase } from '@/composables/useSupabase'
 import { useAuthStore } from '@/stores/auth'
 import { useFriendStore } from '@/stores/friend'
 import { useChatStore } from '@/stores/chat'
+import { useConversationSettingsStore } from '@/stores/conversationSettings'
 import Avatar from '@/components/ui/Avatar.vue'
 import Button from '@/components/ui/Button.vue'
 import type { Profile } from '@/types'
@@ -23,6 +28,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 const friendStore = useFriendStore()
 const chatStore = useChatStore()
+const settingsStore = useConversationSettingsStore()
 
 const userId = ref(route.params.userId as string)
 const profile = ref<Profile | null>(null)
@@ -33,6 +39,32 @@ const isActionLoading = ref(false)
 const friendRecordId = ref<string | null>(null)
 const isSender = ref(false)
 const requestError = ref('')
+const isSavingNote = ref(false)
+const noteInput = ref('')
+const isEditingNote = ref(false)
+
+// Find existing direct conversation with this user
+const directConversation = computed(() => {
+  return chatStore.conversations.find(
+    (c) =>
+      c.type === 'direct' &&
+      c.participants.some((p) => p.user_id === userId.value),
+  )
+})
+
+const directConversationId = computed(() => directConversation.value?.id)
+
+const isPinned = computed(() =>
+  directConversationId.value ? settingsStore.isPinned(directConversationId.value) : false,
+)
+
+const isMuted = computed(() =>
+  directConversationId.value ? settingsStore.isMuted(directConversationId.value) : false,
+)
+
+const customName = computed(() =>
+  directConversationId.value ? settingsStore.getCustomName(directConversationId.value) : null,
+)
 
 async function loadProfile(id: string) {
   isLoading.value = true
@@ -133,6 +165,33 @@ async function startChat() {
     await chatStore.fetchConversations()
     router.push(`/chat/${result.conversationId}`)
   }
+}
+
+async function togglePin() {
+  if (!directConversationId.value) return
+  await settingsStore.togglePin(directConversationId.value)
+}
+
+async function toggleMute() {
+  if (!directConversationId.value) return
+  await settingsStore.toggleMute(directConversationId.value)
+}
+
+function startEditNote() {
+  noteInput.value = customName.value ?? ''
+  isEditingNote.value = true
+}
+
+async function saveNote() {
+  if (!directConversationId.value) return
+  isSavingNote.value = true
+  await settingsStore.setCustomName(directConversationId.value, noteInput.value)
+  isSavingNote.value = false
+  isEditingNote.value = false
+}
+
+function cancelEditNote() {
+  isEditingNote.value = false
 }
 
 function formatJoinDate(dateStr: string): string {
@@ -239,6 +298,87 @@ function formatJoinDate(dateStr: string): string {
         <p v-if="requestError" class="mt-3 text-center text-sm text-destructive">
           {{ requestError }}
         </p>
+
+        <!-- Conversation settings (only if chat exists) -->
+        <div
+          v-if="friendshipStatus === 'accepted' && directConversationId"
+          class="mx-auto mt-6 max-w-sm space-y-3"
+        >
+          <div class="rounded-[1.5rem] border border-border/50 bg-card p-4 shadow-soft">
+            <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Conversation Settings
+            </p>
+
+            <!-- Custom name -->
+            <div class="mt-3">
+              <div v-if="isEditingNote" class="flex items-center gap-2">
+                <input
+                  v-model="noteInput"
+                  type="text"
+                  placeholder="Custom name..."
+                  class="h-10 flex-1 rounded-full border border-border bg-white/50 px-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  @keydown.enter.prevent="saveNote"
+                />
+                <button
+                  class="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90"
+                  :disabled="isSavingNote"
+                  @click="saveNote"
+                >
+                  <PhCheck v-if="!isSavingNote" :size="16" weight="bold" />
+                  <PhSpinner v-else :size="16" class="animate-spin" />
+                </button>
+                <button
+                  class="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted"
+                  @click="cancelEditNote"
+                >
+                  <PhX :size="16" weight="bold" />
+                </button>
+              </div>
+              <div v-else class="flex items-center justify-between">
+                <div>
+                  <p class="text-xs text-muted-foreground">Custom Name</p>
+                  <p class="text-sm text-foreground">
+                    {{ customName || 'No custom name set' }}
+                  </p>
+                </div>
+                <button
+                  class="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted"
+                  @click="startEditNote"
+                >
+                  <PhPencilSimple :size="16" />
+                </button>
+              </div>
+            </div>
+
+            <!-- Pin / Mute toggles -->
+            <div class="mt-3 flex items-center gap-3">
+              <button
+                :class="[
+                  'flex flex-1 items-center justify-center gap-2 rounded-full border py-2 text-sm font-medium transition-all duration-200',
+                  isPinned
+                    ? 'border-secondary bg-secondary/10 text-secondary'
+                    : 'border-border text-foreground hover:bg-muted',
+                ]"
+                @click="togglePin"
+              >
+                <PhPushPin :size="16" :weight="isPinned ? 'fill' : 'regular'" />
+                <span>{{ isPinned ? 'Pinned' : 'Pin' }}</span>
+              </button>
+              <button
+                :class="[
+                  'flex flex-1 items-center justify-center gap-2 rounded-full border py-2 text-sm font-medium transition-all duration-200',
+                  isMuted
+                    ? 'border-destructive bg-destructive/10 text-destructive'
+                    : 'border-border text-foreground hover:bg-muted',
+                ]"
+                @click="toggleMute"
+              >
+                <component :is="isMuted ? PhBellSlash : PhBell" :size="16" />
+                <span>{{ isMuted ? 'Muted' : 'Mute' }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
 
         <!-- Info cards -->
         <div class="mt-8 space-y-3 text-left">

@@ -14,15 +14,18 @@ import {
 } from '@phosphor-icons/vue'
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
+import { useConversationSettingsStore } from '@/stores/conversationSettings'
 import Avatar from '@/components/ui/Avatar.vue'
 import GroupInfoPanel from '@/components/chat/GroupInfoPanel.vue'
 import EmojiPicker from '@/components/chat/EmojiPicker.vue'
+import ConversationSettingsMenu from '@/components/chat/ConversationSettingsMenu.vue'
 import type { Profile, Attachment } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const chatStore = useChatStore()
+const settingsStore = useConversationSettingsStore()
 
 const showGroupPanel = ref(false)
 const showEmojiPicker = ref(false)
@@ -174,8 +177,8 @@ const conversationAvatar = ref<string | undefined>(undefined)
 const conversationStatus = ref<Profile['status'] | undefined>(undefined)
 
 watch(
-  () => chatStore.currentConversation,
-  (conv) => {
+  [() => chatStore.currentConversation, () => settingsStore.settingsMap],
+  ([conv]) => {
     if (conv) {
       conversationName.value = chatStore.getConversationName(conv)
       conversationAvatar.value = chatStore.getConversationAvatar(conv)
@@ -218,13 +221,19 @@ watch(
         </p>
       </div>
 
-      <button
-        v-if="chatStore.currentConversation?.type === 'group'"
-        class="flex h-10 w-10 items-center justify-center rounded-full transition-all duration-200 hover:bg-muted"
-        @click="showGroupPanel = true"
-      >
-        <PhDotsThreeVertical :size="22" class="text-foreground" />
-      </button>
+      <div class="flex items-center gap-1">
+        <button
+          v-if="chatStore.currentConversation?.type === 'group'"
+          class="flex h-10 w-10 items-center justify-center rounded-full transition-all duration-200 hover:bg-muted"
+          @click="showGroupPanel = true"
+        >
+          <PhDotsThreeVertical :size="22" class="text-foreground" />
+        </button>
+        <ConversationSettingsMenu
+          v-if="chatStore.currentConversation"
+          :conversation-id="chatStore.currentConversation.id"
+        />
+      </div>
     </div>
 
     <!-- Messages -->

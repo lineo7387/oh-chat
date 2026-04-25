@@ -29,19 +29,19 @@
 
 ## 4. Contact Notes, Conversation Mute & Pin
 
-- [ ] 4.1 Create `conversation_settings` Pinia store with CRUD operations (custom_name, is_muted, is_pinned, pinned_at)
-- [ ] 4.2 Update Sidebar conversation list sorting: pinned first (by pinned_at desc), then by last message time
-- [ ] 4.3 Create `ConversationSettingsMenu` dropdown component (Pin/Unpin, Mute/Unmute, Edit Note)
-- [ ] 4.4 Wire ConversationSettingsMenu into Sidebar conversation items (more-options button on hover)
-- [ ] 4.5 Wire ConversationSettingsMenu into ChatView header (more-options button for both direct and group)
-- [ ] 4.6 Add custom name input + mute/pin toggles to UserProfileView for friends
-- [ ] 4.7 Update Sidebar `getConversationName` to use custom_name when available
-- [ ] 4.8 Update ChatView header to use custom_name when available
-- [ ] 4.9 Add pin icon (push-pin) to pinned conversations in Sidebar
-- [ ] 4.10 Add muted icon (bell-slash) to muted conversations in Sidebar
-- [ ] 4.11 Add "Pinned Conversations" section to SettingsView
-- [ ] 4.12 Add "Muted Conversations" section to SettingsView
-- [ ] 4.13 Ensure unread count trigger respects `is_muted` setting
+- [x] 4.1 Create `conversation_settings` Pinia store with CRUD operations (custom_name, is_muted, is_pinned, pinned_at)
+- [x] 4.2 Update Sidebar conversation list sorting: pinned first (by pinned_at desc), then by last message time
+- [x] 4.3 Create `ConversationSettingsMenu` dropdown component (Pin/Unpin, Mute/Unmute, Edit Note)
+- [x] 4.4 Wire ConversationSettingsMenu into Sidebar conversation items (more-options button on hover)
+- [x] 4.5 Wire ConversationSettingsMenu into ChatView header (more-options button for both direct and group)
+- [x] 4.6 Add custom name input + mute/pin toggles to UserProfileView for friends
+- [x] 4.7 Update Sidebar `getConversationName` to use custom_name when available
+- [x] 4.8 Update ChatView header to use custom_name when available
+- [x] 4.9 Add pin icon (push-pin) to pinned conversations in Sidebar
+- [x] 4.10 Add muted icon (bell-slash) to muted conversations in Sidebar
+- [x] 4.11 Add "Pinned Conversations" section to SettingsView
+- [x] 4.12 Add "Muted Conversations" section to SettingsView
+- [x] 4.13 Ensure unread count trigger respects `is_muted` setting
 
 ## 5. Voice Messages
 

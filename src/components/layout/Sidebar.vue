@@ -1,10 +1,21 @@
 <script setup lang="ts">
 import { computed, watch, onMounted } from 'vue'
-import { PhMagnifyingGlass, PhPlus, PhGear, PhX, PhChatCircle, PhUsers } from '@phosphor-icons/vue'
+import {
+  PhMagnifyingGlass,
+  PhPlus,
+  PhGear,
+  PhX,
+  PhChatCircle,
+  PhUsers,
+  PhPushPin,
+  PhBellSlash,
+} from '@phosphor-icons/vue'
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
 import { useFriendStore } from '@/stores/friend'
+import { useConversationSettingsStore } from '@/stores/conversationSettings'
 import Avatar from '@/components/ui/Avatar.vue'
+import ConversationSettingsMenu from '@/components/chat/ConversationSettingsMenu.vue'
 
 defineProps<{
   isOpen: boolean
@@ -17,6 +28,7 @@ const emit = defineEmits<{
 const authStore = useAuthStore()
 const chatStore = useChatStore()
 const friendStore = useFriendStore()
+const settingsStore = useConversationSettingsStore()
 
 function close() {
   emit('close')
@@ -136,7 +148,7 @@ function truncatePreview(text: string | undefined, max = 40): string {
 
       <!-- Empty state -->
       <div
-        v-else-if="chatStore.conversations.length === 0"
+        v-else-if="chatStore.sortedConversations.length === 0"
         class="flex flex-col items-center justify-center py-12 text-center"
       >
         <PhChatCircle :size="32" class="mb-3 text-muted-foreground/40" />
@@ -147,11 +159,11 @@ function truncatePreview(text: string | undefined, max = 40): string {
       <!-- Conversations -->
       <div v-else class="space-y-0.5 py-2">
         <RouterLink
-          v-for="conv in chatStore.conversations"
+          v-for="conv in chatStore.sortedConversations"
           :key="conv.id"
           :to="`/chat/${conv.id}`"
           :class="[
-            'flex items-center gap-3 rounded-2xl px-3 py-2.5 transition-all duration-200',
+            'group flex items-center gap-3 rounded-2xl px-3 py-2.5 transition-all duration-200',
             chatStore.currentConversationId === conv.id
               ? 'bg-primary/10 text-primary'
               : 'text-foreground hover:bg-muted',
@@ -166,20 +178,35 @@ function truncatePreview(text: string | undefined, max = 40): string {
           />
           <div class="min-w-0 flex-1">
             <div class="flex items-center justify-between">
-              <p
-                :class="[
-                  'truncate text-sm',
-                  conv.unreadCount > 0 ? 'font-semibold text-foreground' : 'font-medium',
-                ]"
-              >
-                {{ chatStore.getConversationName(conv) }}
-              </p>
-              <span
-                v-if="conv.lastMessage && conv.unreadCount === 0"
-                class="shrink-0 text-[10px] text-muted-foreground"
-              >
-                {{ formatTime(conv.lastMessage.created_at) }}
-              </span>
+              <div class="flex min-w-0 items-center gap-1.5">
+                <PhPushPin
+                  v-if="settingsStore.isPinned(conv.id)"
+                  :size="12"
+                  weight="fill"
+                  class="shrink-0 text-secondary"
+                />
+                <p
+                  :class="[
+                    'truncate text-sm',
+                    conv.unreadCount > 0 ? 'font-semibold text-foreground' : 'font-medium',
+                  ]"
+                >
+                  {{ chatStore.getConversationName(conv) }}
+                </p>
+              </div>
+              <div class="flex shrink-0 items-center gap-1">
+                <PhBellSlash
+                  v-if="settingsStore.isMuted(conv.id)"
+                  :size="12"
+                  class="text-muted-foreground/60"
+                />
+                <span
+                  v-if="conv.lastMessage && conv.unreadCount === 0"
+                  class="text-[10px] text-muted-foreground"
+                >
+                  {{ formatTime(conv.lastMessage.created_at) }}
+                </span>
+              </div>
             </div>
             <div class="flex items-center justify-between">
               <p
@@ -197,6 +224,11 @@ function truncatePreview(text: string | undefined, max = 40): string {
                 {{ conv.unreadCount > 99 ? '99+' : conv.unreadCount }}
               </span>
             </div>
+          </div>
+
+          <!-- More options -->
+          <div class="opacity-0 transition-opacity group-hover:opacity-100">
+            <ConversationSettingsMenu :conversation-id="conv.id" />
           </div>
         </RouterLink>
       </div>

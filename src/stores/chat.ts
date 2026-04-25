@@ -2,6 +2,7 @@ import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { supabase } from '@/composables/useSupabase'
 import { useAuthStore } from './auth'
+import { useConversationSettingsStore } from './conversationSettings'
 import type { Conversation, ConversationParticipant, Message, Profile, Attachment } from '@/types'
 
 export interface ConversationWithMeta extends Conversation {
@@ -31,12 +32,33 @@ export const useChatStore = defineStore('chat', () => {
   const messages = ref<Message[]>([])
   const isLoadingConversations = ref(false)
   const isLoadingMessages = ref(false)
+  const settingsStore = useConversationSettingsStore()
 
   const currentConversation = computed(() => {
     return conversations.value.find((c) => c.id === currentConversationId.value) || null
   })
 
+  const sortedConversations = computed(() => {
+    return [...conversations.value].sort((a, b) => {
+      const aPinned = settingsStore.isPinned(a.id)
+      const bPinned = settingsStore.isPinned(b.id)
+      if (aPinned && !bPinned) return -1
+      if (!aPinned && bPinned) return 1
+      if (aPinned && bPinned) {
+        const aTime = settingsStore.getSetting(a.id)?.pinned_at ?? ''
+        const bTime = settingsStore.getSetting(b.id)?.pinned_at ?? ''
+        return new Date(bTime).getTime() - new Date(aTime).getTime()
+      }
+      // Neither pinned — sort by last message time, fallback to conversation updated_at
+      const aMsgTime = a.lastMessage?.created_at ?? a.updated_at
+      const bMsgTime = b.lastMessage?.created_at ?? b.updated_at
+      return new Date(bMsgTime).getTime() - new Date(aMsgTime).getTime()
+    })
+  })
+
   function getConversationName(conv: ConversationWithMeta): string {
+    const customName = settingsStore.getCustomName(conv.id)
+    if (customName) return customName
     if (conv.type === 'group') {
       return conv.title ?? 'Unnamed Group'
     }
@@ -149,6 +171,9 @@ export const useChatStore = defineStore('chat', () => {
           unreadCount: myPart?.unread_count ?? 0,
         }
       })
+
+      // 5. Fetch conversation settings (custom names, pin, mute)
+      await settingsStore.fetchSettings()
     } catch (error) {
       console.error('Failed to fetch conversations:', error)
     } finally {
@@ -557,6 +582,7 @@ export const useChatStore = defineStore('chat', () => {
 
   return {
     conversations,
+    sortedConversations,
     currentConversationId,
     currentConversation,
     messages,

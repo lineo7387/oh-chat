@@ -1,22 +1,52 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { PhUser, PhShield, PhPalette, PhSignOut, PhCamera, PhSpinner } from '@phosphor-icons/vue'
+import { ref, watch, computed } from 'vue'
+import {
+  PhUser,
+  PhShield,
+  PhPalette,
+  PhSignOut,
+  PhCamera,
+  PhSpinner,
+  PhChatCircle,
+  PhPushPin,
+  PhBellSlash,
+  PhX,
+} from '@phosphor-icons/vue'
 import { useAuthStore } from '@/stores/auth'
+import { useChatStore } from '@/stores/chat'
+import { useConversationSettingsStore } from '@/stores/conversationSettings'
 import { useRouter } from 'vue-router'
 import Button from '@/components/ui/Button.vue'
 import Avatar from '@/components/ui/Avatar.vue'
 
-type TabId = 'profile' | 'account' | 'appearance'
+type TabId = 'profile' | 'account' | 'appearance' | 'chat'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const chatStore = useChatStore()
+const settingsStore = useConversationSettingsStore()
 const activeTab = ref<TabId>('profile')
 
 const tabs = [
   { id: 'profile' as TabId, label: 'Profile', icon: PhUser },
   { id: 'account' as TabId, label: 'Account', icon: PhShield },
   { id: 'appearance' as TabId, label: 'Appearance', icon: PhPalette },
+  { id: 'chat' as TabId, label: 'Chat', icon: PhChatCircle },
 ]
+
+const pinnedConversations = computed(() => {
+  return chatStore.conversations
+    .filter((c) => settingsStore.isPinned(c.id))
+    .sort((a, b) => {
+      const aTime = settingsStore.getSetting(a.id)?.pinned_at ?? ''
+      const bTime = settingsStore.getSetting(b.id)?.pinned_at ?? ''
+      return new Date(bTime).getTime() - new Date(aTime).getTime()
+    })
+})
+
+const mutedConversations = computed(() => {
+  return chatStore.conversations.filter((c) => settingsStore.isMuted(c.id))
+})
 
 // Profile form
 const displayName = ref(authStore.profile?.display_name || '')
@@ -231,6 +261,81 @@ async function saveProfile() {
               Appearance settings will be available here. Customize themes, font sizes, and display
               preferences.
             </p>
+          </div>
+        </div>
+
+        <!-- Chat -->
+        <div v-if="activeTab === 'chat'" class="max-w-lg space-y-6">
+          <h2 class="font-heading text-xl font-semibold text-foreground">Chat Settings</h2>
+
+          <!-- Pinned Conversations -->
+          <div class="rounded-[2rem] border border-border/50 bg-card p-6 shadow-soft">
+            <div class="flex items-center gap-2">
+              <PhPushPin :size="18" class="text-secondary" />
+              <h3 class="font-heading text-sm font-semibold text-foreground">Pinned Conversations</h3>
+            </div>
+            <div v-if="pinnedConversations.length === 0" class="mt-3 text-sm text-muted-foreground">
+              No pinned conversations.
+            </div>
+            <div v-else class="mt-3 space-y-2">
+              <div
+                v-for="conv in pinnedConversations"
+                :key="conv.id"
+                class="flex items-center gap-3 rounded-2xl border border-border/30 bg-background px-3 py-2.5"
+              >
+                <Avatar
+                  :src="chatStore.getConversationAvatar(conv)"
+                  :alt="chatStore.getConversationName(conv)"
+                  size="sm"
+                />
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-sm font-medium text-foreground">
+                    {{ chatStore.getConversationName(conv) }}
+                  </p>
+                </div>
+                <button
+                  class="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted"
+                  @click="settingsStore.togglePin(conv.id)"
+                >
+                  <PhX :size="14" weight="bold" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Muted Conversations -->
+          <div class="rounded-[2rem] border border-border/50 bg-card p-6 shadow-soft">
+            <div class="flex items-center gap-2">
+              <PhBellSlash :size="18" class="text-destructive" />
+              <h3 class="font-heading text-sm font-semibold text-foreground">Muted Conversations</h3>
+            </div>
+            <div v-if="mutedConversations.length === 0" class="mt-3 text-sm text-muted-foreground">
+              No muted conversations.
+            </div>
+            <div v-else class="mt-3 space-y-2">
+              <div
+                v-for="conv in mutedConversations"
+                :key="conv.id"
+                class="flex items-center gap-3 rounded-2xl border border-border/30 bg-background px-3 py-2.5"
+              >
+                <Avatar
+                  :src="chatStore.getConversationAvatar(conv)"
+                  :alt="chatStore.getConversationName(conv)"
+                  size="sm"
+                />
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-sm font-medium text-foreground">
+                    {{ chatStore.getConversationName(conv) }}
+                  </p>
+                </div>
+                <button
+                  class="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted"
+                  @click="settingsStore.toggleMute(conv.id)"
+                >
+                  <PhX :size="14" weight="bold" />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
