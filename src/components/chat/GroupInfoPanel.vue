@@ -9,10 +9,15 @@ import {
   PhSignOut,
   PhMagnifyingGlass,
   PhSpinner,
+  PhPushPin,
+  PhBell,
+  PhBellSlash,
+  PhGear,
 } from '@phosphor-icons/vue'
 import { supabase } from '@/composables/useSupabase'
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
+import { useConversationSettingsStore } from '@/stores/conversationSettings'
 import Avatar from '@/components/ui/Avatar.vue'
 import Button from '@/components/ui/Button.vue'
 import Input from '@/components/ui/Input.vue'
@@ -31,6 +36,7 @@ const emit = defineEmits<{
 
 const authStore = useAuthStore()
 const chatStore = useChatStore()
+const settingsStore = useConversationSettingsStore()
 
 const isEditingTitle = ref(false)
 const editTitleValue = ref('')
@@ -47,6 +53,23 @@ const addMemberError = ref('')
 
 const isLeaving = ref(false)
 const leaveError = ref('')
+
+const isTogglingPin = ref(false)
+const isTogglingMute = ref(false)
+const isEditingNote = ref(false)
+const noteInput = ref('')
+const isSavingNote = ref(false)
+const noteError = ref('')
+
+const isPinned = computed(() => {
+  if (!props.conversation) return false
+  return settingsStore.isPinned(props.conversation.id)
+})
+
+const isMuted = computed(() => {
+  if (!props.conversation) return false
+  return settingsStore.isMuted(props.conversation.id)
+})
 
 const currentUserRole = computed(() => {
   if (!props.conversation || !authStore.user) return null
@@ -72,6 +95,11 @@ watch(
       searchResults.value = []
       addMemberError.value = ''
       leaveError.value = ''
+      isEditingNote.value = false
+      noteError.value = ''
+      if (props.conversation) {
+        noteInput.value = settingsStore.getCustomName(props.conversation.id) ?? ''
+      }
     }
   },
 )
@@ -139,6 +167,43 @@ async function addMember(userId: string) {
   } else {
     addMemberError.value = result.error ?? 'Failed to add member'
   }
+}
+
+async function togglePin() {
+  if (!props.conversation) return
+  isTogglingPin.value = true
+  await settingsStore.togglePin(props.conversation.id)
+  isTogglingPin.value = false
+}
+
+async function toggleMute() {
+  if (!props.conversation) return
+  isTogglingMute.value = true
+  await settingsStore.toggleMute(props.conversation.id)
+  isTogglingMute.value = false
+}
+
+function startEditNote() {
+  if (!props.conversation) return
+  noteInput.value = settingsStore.getCustomName(props.conversation.id) ?? ''
+  isEditingNote.value = true
+}
+
+async function saveNote() {
+  if (!props.conversation) return
+  isSavingNote.value = true
+  noteError.value = ''
+  const result = await settingsStore.setCustomName(props.conversation.id, noteInput.value)
+  isSavingNote.value = false
+  if (result.success) {
+    isEditingNote.value = false
+  } else {
+    noteError.value = result.error ?? 'Failed to save note'
+  }
+}
+
+function cancelEditNote() {
+  isEditingNote.value = false
 }
 
 async function leaveGroup() {
@@ -332,6 +397,113 @@ function close() {
               <p v-if="addMemberError" class="text-center text-sm text-destructive">
                 {{ addMemberError }}
               </p>
+            </div>
+          </div>
+
+          <!-- Settings -->
+          <div class="mb-6 space-y-3">
+            <div class="mb-2 flex items-center gap-2">
+              <PhGear :size="16" class="text-muted-foreground" />
+              <span class="text-sm font-semibold text-foreground">Settings</span>
+            </div>
+
+            <!-- Pin -->
+            <button
+              class="flex w-full items-center justify-between rounded-2xl border border-border/50 bg-white/40 px-4 py-3 transition-colors hover:bg-muted"
+              :disabled="isTogglingPin"
+              @click="togglePin"
+            >
+              <div class="flex items-center gap-3">
+                <PhPushPin
+                  :size="18"
+                  :weight="isPinned ? 'fill' : 'regular'"
+                  class="text-secondary"
+                />
+                <span class="text-sm font-medium text-foreground">Pin Conversation</span>
+              </div>
+              <div
+                :class="[
+                  'h-6 w-10 rounded-full transition-colors duration-200',
+                  isPinned ? 'bg-primary' : 'bg-muted',
+                ]"
+              >
+                <div
+                  :class="[
+                    'h-6 w-6 rounded-full bg-white shadow-sm transition-transform duration-200',
+                    isPinned ? 'translate-x-4' : 'translate-x-0',
+                  ]"
+                />
+              </div>
+            </button>
+
+            <!-- Mute -->
+            <button
+              class="flex w-full items-center justify-between rounded-2xl border border-border/50 bg-white/40 px-4 py-3 transition-colors hover:bg-muted"
+              :disabled="isTogglingMute"
+              @click="toggleMute"
+            >
+              <div class="flex items-center gap-3">
+                <component :is="isMuted ? PhBellSlash : PhBell" :size="18" class="text-secondary" />
+                <span class="text-sm font-medium text-foreground">Mute Notifications</span>
+              </div>
+              <div
+                :class="[
+                  'h-6 w-10 rounded-full transition-colors duration-200',
+                  isMuted ? 'bg-primary' : 'bg-muted',
+                ]"
+              >
+                <div
+                  :class="[
+                    'h-6 w-6 rounded-full bg-white shadow-sm transition-transform duration-200',
+                    isMuted ? 'translate-x-4' : 'translate-x-0',
+                  ]"
+                />
+              </div>
+            </button>
+
+            <!-- Custom Name -->
+            <div class="rounded-2xl border border-border/50 bg-white/40 px-4 py-3">
+              <div v-if="isEditingNote" class="space-y-2">
+                <div class="flex items-center gap-2">
+                  <Input v-model="noteInput" class="flex-1" placeholder="Custom name..." />
+                  <button
+                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90"
+                    :disabled="isSavingNote"
+                    @click="saveNote"
+                  >
+                    <PhSpinner v-if="isSavingNote" :size="16" class="animate-spin" />
+                    <PhCheck v-else :size="16" weight="bold" />
+                  </button>
+                  <button
+                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted"
+                    @click="cancelEditNote"
+                  >
+                    <PhX :size="16" />
+                  </button>
+                </div>
+                <p v-if="noteError" class="text-xs text-destructive">{{ noteError }}</p>
+              </div>
+              <div v-else class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <PhPencilSimple :size="18" class="text-secondary" />
+                  <div class="min-w-0">
+                    <p class="text-sm font-medium text-foreground">Custom Name</p>
+                    <p class="truncate text-xs text-muted-foreground">
+                      {{
+                        conversation
+                          ? settingsStore.getCustomName(conversation.id) || 'Add a note...'
+                          : ''
+                      }}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  class="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted"
+                  @click="startEditNote"
+                >
+                  <PhPencilSimple :size="14" />
+                </button>
+              </div>
             </div>
           </div>
 

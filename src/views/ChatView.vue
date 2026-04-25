@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import {
   PhArrowLeft,
   PhDotsThreeVertical,
+  PhGear,
   PhPaperPlaneRight,
   PhSmiley,
   PhPaperclip,
@@ -18,7 +19,7 @@ import { useConversationSettingsStore } from '@/stores/conversationSettings'
 import Avatar from '@/components/ui/Avatar.vue'
 import GroupInfoPanel from '@/components/chat/GroupInfoPanel.vue'
 import EmojiPicker from '@/components/chat/EmojiPicker.vue'
-import ConversationSettingsMenu from '@/components/chat/ConversationSettingsMenu.vue'
+import ConversationSettingsPanel from '@/components/chat/ConversationSettingsPanel.vue'
 import type { Profile, Attachment } from '@/types'
 
 const route = useRoute()
@@ -28,6 +29,7 @@ const chatStore = useChatStore()
 const settingsStore = useConversationSettingsStore()
 
 const showGroupPanel = ref(false)
+const showSettingsPanel = ref(false)
 const showEmojiPicker = ref(false)
 
 const conversationId = ref(route.params.conversationId as string)
@@ -228,10 +230,13 @@ watch(
         >
           <PhDotsThreeVertical :size="22" class="text-foreground" />
         </button>
-        <ConversationSettingsMenu
-          v-if="chatStore.currentConversation"
-          :conversation-id="chatStore.currentConversation.id"
-        />
+        <button
+          v-else-if="chatStore.currentConversation"
+          class="flex h-10 w-10 items-center justify-center rounded-full transition-all duration-200 hover:bg-muted"
+          @click="showSettingsPanel = true"
+        >
+          <PhGear :size="22" class="text-foreground" />
+        </button>
       </div>
     </div>
 
@@ -428,6 +433,14 @@ watch(
       :is-open="showGroupPanel"
       @close="showGroupPanel = false"
       @left="router.push('/')"
+    />
+
+    <!-- Conversation Settings Panel -->
+    <ConversationSettingsPanel
+      v-if="chatStore.currentConversation"
+      :conversation-id="chatStore.currentConversation.id"
+      :is-open="showSettingsPanel"
+      @close="showSettingsPanel = false"
     />
   </div>
 </template>
