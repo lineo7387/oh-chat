@@ -20,6 +20,10 @@ export const useConversationSettingsStore = defineStore('conversationSettings', 
     return getSetting(conversationId)?.is_muted ?? false
   }
 
+  function isHidden(conversationId: string): boolean {
+    return getSetting(conversationId)?.is_hidden ?? false
+  }
+
   function getCustomName(conversationId: string): string | null {
     return getSetting(conversationId)?.custom_name ?? null
   }
@@ -32,7 +36,9 @@ export const useConversationSettingsStore = defineStore('conversationSettings', 
     try {
       const { data, error } = await supabase
         .from('conversation_settings')
-        .select('user_id, conversation_id, custom_name, is_muted, is_pinned, pinned_at, updated_at')
+        .select(
+          'user_id, conversation_id, custom_name, is_muted, is_pinned, pinned_at, is_hidden, updated_at',
+        )
         .eq('user_id', authStore.user.id)
 
       if (error) throw error
@@ -105,6 +111,13 @@ export const useConversationSettingsStore = defineStore('conversationSettings', 
     })
   }
 
+  async function toggleHide(conversationId: string) {
+    const currentlyHidden = isHidden(conversationId)
+    return upsertSetting(conversationId, {
+      is_hidden: !currentlyHidden,
+    })
+  }
+
   async function setCustomName(conversationId: string, customName: string | null) {
     return upsertSetting(conversationId, {
       custom_name: customName?.trim() || null,
@@ -117,11 +130,13 @@ export const useConversationSettingsStore = defineStore('conversationSettings', 
     getSetting,
     isPinned,
     isMuted,
+    isHidden,
     getCustomName,
     fetchSettings,
     upsertSetting,
     togglePin,
     toggleMute,
+    toggleHide,
     setCustomName,
   }
 })

@@ -225,6 +225,7 @@ export interface Database {
           is_muted: boolean
           is_pinned: boolean
           pinned_at: string | null
+          is_hidden: boolean
           updated_at: string
         }
         Insert: {
@@ -234,6 +235,7 @@ export interface Database {
           is_muted?: boolean
           is_pinned?: boolean
           pinned_at?: string | null
+          is_hidden?: boolean
           updated_at?: string
         }
         Update: {
@@ -243,6 +245,7 @@ export interface Database {
           is_muted?: boolean
           is_pinned?: boolean
           pinned_at?: string | null
+          is_hidden?: boolean
           updated_at?: string
         }
         Relationships: []

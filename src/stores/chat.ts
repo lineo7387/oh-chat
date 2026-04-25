@@ -140,8 +140,8 @@ export const useChatStore = defineStore('chat', () => {
         }
       }
 
-      // 4. Build enriched conversations
-      conversations.value = (convsData ?? []).map((conv: Record<string, unknown>) => {
+      // 4. Build enriched conversations (filter out hidden ones after settings load)
+      const enrichedConversations = (convsData ?? []).map((conv: Record<string, unknown>) => {
         const rawParticipants = (conv.participants as Array<Record<string, unknown>>) ?? []
         const participants = rawParticipants.map((p) => ({
           conversation_id: conv.id as string,
@@ -172,8 +172,11 @@ export const useChatStore = defineStore('chat', () => {
         }
       })
 
-      // 5. Fetch conversation settings (custom names, pin, mute)
+      // 5. Fetch conversation settings (custom names, pin, mute, hidden)
       await settingsStore.fetchSettings()
+
+      // 6. Filter out hidden conversations
+      conversations.value = enrichedConversations.filter((conv) => !settingsStore.isHidden(conv.id))
     } catch (error) {
       console.error('Failed to fetch conversations:', error)
     } finally {
@@ -234,6 +237,11 @@ export const useChatStore = defineStore('chat', () => {
         return { success: false as const, error: 'Failed to create conversation' }
       }
 
+      // Unhide if this conversation was previously hidden
+      if (settingsStore.isHidden(convId)) {
+        await settingsStore.toggleHide(convId)
+      }
+
       return { success: true as const, conversationId: convId, isNew: true as const }
     } catch (error) {
       console.error('Failed to create direct conversation:', error)
@@ -257,6 +265,11 @@ export const useChatStore = defineStore('chat', () => {
       if (error) throw error
       if (!convId) {
         return { success: false as const, error: 'Failed to create group' }
+      }
+
+      // Unhide if this conversation was previously hidden
+      if (settingsStore.isHidden(convId)) {
+        await settingsStore.toggleHide(convId)
       }
 
       return { success: true as const, conversationId: convId }

@@ -83,5 +83,6 @@ export interface ConversationSettings {
   is_muted: boolean
   is_pinned: boolean
   pinned_at: string | null
+  is_hidden: boolean
   updated_at: string
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch, onMounted, ref } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   PhMagnifyingGlass,
@@ -10,13 +10,13 @@ import {
   PhUsers,
   PhPushPin,
   PhBellSlash,
-  PhTrash,
 } from '@phosphor-icons/vue'
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
 import { useFriendStore } from '@/stores/friend'
 import { useConversationSettingsStore } from '@/stores/conversationSettings'
 import Avatar from '@/components/ui/Avatar.vue'
+import SwipeableItem from '@/components/ui/SwipeableItem.vue'
 
 defineProps<{
   isOpen: boolean
@@ -26,14 +26,31 @@ const emit = defineEmits<{
   close: []
 }>()
 
-const router = useRouter()
 const authStore = useAuthStore()
 const chatStore = useChatStore()
 const friendStore = useFriendStore()
 const settingsStore = useConversationSettingsStore()
+const router = useRouter()
+const activeSwipeId = ref<string | null>(null)
 
 function close() {
   emit('close')
+}
+
+function onSwipeOpen(convId: string) {
+  activeSwipeId.value = convId
+}
+
+async function handlePin(convId: string) {
+  await settingsStore.togglePin(convId)
+}
+
+async function handleDelete(convId: string) {
+  await settingsStore.toggleHide(convId)
+  // If currently viewing this conversation, navigate away
+  if (chatStore.currentConversationId === convId) {
+    router.push('/')
+  }
 }
 
 const displayName = computed(() => {
@@ -78,127 +95,6 @@ function formatTime(dateStr: string | undefined): string {
 function truncatePreview(text: string | undefined, max = 40): string {
   if (!text) return ''
   return text.length > max ? text.slice(0, max) + '...' : text
-}
-
-// ── Swipe actions ──────────────────────────────────────────
-
-const swipedConvId = ref<string | null>(null)
-const activeSwipeId = ref<string | null>(null)
-const swipeOffset = ref(0)
-const touchStartX = ref(0)
-const isDragging = ref(false)
-
-const ACTION_WIDTH = 112 // 56px per button × 2
-
-function getSwipeStyle(convId: string) {
-  if (activeSwipeId.value === convId) {
-    return { transform: `translateX(-${swipeOffset.value}px)` }
-  }
-  if (swipedConvId.value === convId) {
-    return { transform: `translateX(-${ACTION_WIDTH}px)` }
-  }
-  return { transform: 'translateX(0px)' }
-}
-
-function onTouchStart(event: TouchEvent, convId: string) {
-  if (swipedConvId.value && swipedConvId.value !== convId) {
-    swipedConvId.value = null
-  }
-  activeSwipeId.value = convId
-  touchStartX.value = event.touches[0]!.clientX
-  isDragging.value = false
-}
-
-function onTouchMove(event: TouchEvent) {
-  if (!activeSwipeId.value) return
-  const currentX = event.touches[0]!.clientX
-  const deltaX = touchStartX.value - currentX
-  if (deltaX > 5) isDragging.value = true
-  swipeOffset.value = Math.min(Math.max(deltaX, 0), ACTION_WIDTH)
-}
-
-function onTouchEnd() {
-  if (!activeSwipeId.value) return
-  if (swipeOffset.value > ACTION_WIDTH / 2) {
-    swipedConvId.value = activeSwipeId.value
-  } else if (swipedConvId.value === activeSwipeId.value) {
-    swipedConvId.value = null
-  }
-  activeSwipeId.value = null
-  swipeOffset.value = 0
-  // Delay clearing isDragging to prevent click
-  setTimeout(() => {
-    isDragging.value = false
-  }, 50)
-}
-
-function onMouseDown(event: MouseEvent, convId: string) {
-  if (swipedConvId.value && swipedConvId.value !== convId) {
-    swipedConvId.value = null
-  }
-  activeSwipeId.value = convId
-  touchStartX.value = event.clientX
-  isDragging.value = false
-
-  const onMouseMove = (e: MouseEvent) => {
-    if (!activeSwipeId.value) return
-    const deltaX = touchStartX.value - e.clientX
-    if (deltaX > 5) isDragging.value = true
-    swipeOffset.value = Math.min(Math.max(deltaX, 0), ACTION_WIDTH)
-  }
-
-  const onMouseUp = () => {
-    if (!activeSwipeId.value) return
-    if (swipeOffset.value > ACTION_WIDTH / 2) {
-      swipedConvId.value = activeSwipeId.value
-    } else if (swipedConvId.value === activeSwipeId.value) {
-      swipedConvId.value = null
-    }
-    activeSwipeId.value = null
-    swipeOffset.value = 0
-    setTimeout(() => {
-      isDragging.value = false
-    }, 50)
-    document.removeEventListener('mousemove', onMouseMove)
-    document.removeEventListener('mouseup', onMouseUp)
-  }
-
-  document.addEventListener('mousemove', onMouseMove)
-  document.addEventListener('mouseup', onMouseUp)
-}
-
-function onLinkClick(convId: string, event: MouseEvent) {
-  if (swipedConvId.value === convId) {
-    event.preventDefault()
-    swipedConvId.value = null
-    return
-  }
-  if (isDragging.value || (activeSwipeId.value === convId && swipeOffset.value > 5)) {
-    event.preventDefault()
-    return
-  }
-  close()
-}
-
-async function handlePin(convId: string) {
-  swipedConvId.value = null
-  await settingsStore.togglePin(convId)
-}
-
-async function handleDelete(conv: (typeof chatStore.sortedConversations)[number]) {
-  swipedConvId.value = null
-  const isGroup = conv.type === 'group'
-  const message = isGroup
-    ? 'Are you sure you want to leave this group?'
-    : 'Are you sure you want to delete this conversation?'
-  if (!confirm(message)) return
-
-  const result = await chatStore.removeGroupMember(conv.id, authStore.user!.id)
-  if (result.success) {
-    if (chatStore.currentConversationId === conv.id) {
-      router.push('/')
-    }
-  }
 }
 </script>
 
@@ -281,103 +177,82 @@ async function handleDelete(conv: (typeof chatStore.sortedConversations)[number]
 
       <!-- Conversations -->
       <div v-else class="space-y-0.5 py-2">
-        <div
+        <SwipeableItem
           v-for="conv in chatStore.sortedConversations"
           :key="conv.id"
-          class="relative overflow-hidden rounded-2xl"
+          :item-id="conv.id"
+          :active-id="activeSwipeId"
+          :is-pinned="settingsStore.isPinned(conv.id)"
+          @open="onSwipeOpen(conv.id)"
+          @pin="handlePin(conv.id)"
+          @delete="handleDelete(conv.id)"
         >
-          <!-- Background actions -->
-          <div class="absolute inset-y-0 right-0 flex items-stretch">
-            <button
-              class="flex w-14 items-center justify-center bg-secondary text-white transition-colors hover:bg-secondary/90"
-              @click.stop="handlePin(conv.id)"
-            >
-              <PhPushPin :size="18" weight="fill" />
-            </button>
-            <button
-              class="flex w-14 items-center justify-center bg-destructive text-white transition-colors hover:bg-destructive/90"
-              @click.stop="handleDelete(conv)"
-            >
-              <PhTrash :size="18" />
-            </button>
-          </div>
-
-          <!-- Foreground: swipeable content -->
-          <div
-            class="relative transition-transform duration-200 ease-organic"
-            :style="getSwipeStyle(conv.id)"
-            @touchstart="onTouchStart($event, conv.id)"
-            @touchmove="onTouchMove"
-            @touchend="onTouchEnd"
-            @mousedown="onMouseDown($event, conv.id)"
+          <RouterLink
+            :to="`/chat/${conv.id}`"
+            :class="[
+              'flex items-center gap-3 rounded-2xl px-3 py-2.5 transition-all duration-200',
+              chatStore.currentConversationId === conv.id
+                ? 'bg-primary/10 text-primary'
+                : 'text-foreground hover:bg-muted',
+            ]"
+            @click="close()"
           >
-            <RouterLink
-              :to="`/chat/${conv.id}`"
-              :class="[
-                'flex items-center gap-3 rounded-2xl px-3 py-2.5 transition-all duration-200',
-                chatStore.currentConversationId === conv.id
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-foreground hover:bg-muted',
-              ]"
-              @click="onLinkClick(conv.id, $event)"
-            >
-              <Avatar
-                :src="chatStore.getConversationAvatar(conv)"
-                :alt="chatStore.getConversationName(conv)"
-                size="sm"
-                :status="chatStore.getConversationStatus(conv)"
-              />
-              <div class="min-w-0 flex-1">
-                <div class="flex items-center justify-between">
-                  <div class="flex min-w-0 items-center gap-1.5">
-                    <PhPushPin
-                      v-if="settingsStore.isPinned(conv.id)"
-                      :size="12"
-                      weight="fill"
-                      class="shrink-0 text-secondary"
-                    />
-                    <p
-                      :class="[
-                        'truncate text-sm',
-                        conv.unreadCount > 0 ? 'font-semibold text-foreground' : 'font-medium',
-                      ]"
-                    >
-                      {{ chatStore.getConversationName(conv) }}
-                    </p>
-                  </div>
-                  <div class="flex shrink-0 items-center gap-1">
-                    <PhBellSlash
-                      v-if="settingsStore.isMuted(conv.id)"
-                      :size="12"
-                      class="text-muted-foreground/60"
-                    />
-                    <span v-if="conv.lastMessage" class="text-[10px] text-muted-foreground">
-                      {{ formatTime(conv.lastMessage.created_at) }}
-                    </span>
-                  </div>
-                </div>
-                <div class="flex items-center justify-between">
+            <Avatar
+              :src="chatStore.getConversationAvatar(conv)"
+              :alt="chatStore.getConversationName(conv)"
+              size="sm"
+              :status="chatStore.getConversationStatus(conv)"
+            />
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center justify-between">
+                <div class="flex min-w-0 items-center gap-1.5">
+                  <PhPushPin
+                    v-if="settingsStore.isPinned(conv.id)"
+                    :size="12"
+                    weight="fill"
+                    class="shrink-0 text-secondary"
+                  />
                   <p
                     :class="[
-                      'truncate text-xs',
-                      conv.unreadCount > 0
-                        ? 'font-medium text-foreground/80'
-                        : 'text-muted-foreground',
+                      'truncate text-sm',
+                      conv.unreadCount > 0 ? 'font-semibold text-foreground' : 'font-medium',
                     ]"
                   >
-                    {{ truncatePreview(conv.lastMessage?.content) }}
+                    {{ chatStore.getConversationName(conv) }}
                   </p>
-                  <span
-                    v-if="conv.unreadCount > 0"
-                    class="flex h-4 min-w-[1rem] shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground"
-                  >
-                    {{ conv.unreadCount > 99 ? '99+' : conv.unreadCount }}
+                </div>
+                <div class="flex shrink-0 items-center gap-1">
+                  <PhBellSlash
+                    v-if="settingsStore.isMuted(conv.id)"
+                    :size="12"
+                    class="text-muted-foreground/60"
+                  />
+                  <span v-if="conv.lastMessage" class="text-[10px] text-muted-foreground">
+                    {{ formatTime(conv.lastMessage.created_at) }}
                   </span>
                 </div>
               </div>
-            </RouterLink>
-          </div>
-        </div>
+              <div class="flex items-center justify-between">
+                <p
+                  :class="[
+                    'truncate text-xs',
+                    conv.unreadCount > 0
+                      ? 'font-medium text-foreground/80'
+                      : 'text-muted-foreground',
+                  ]"
+                >
+                  {{ truncatePreview(conv.lastMessage?.content) }}
+                </p>
+                <span
+                  v-if="conv.unreadCount > 0"
+                  class="flex h-4 min-w-[1rem] shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground"
+                >
+                  {{ conv.unreadCount > 99 ? '99+' : conv.unreadCount }}
+                </span>
+              </div>
+            </div>
+          </RouterLink>
+        </SwipeableItem>
       </div>
     </div>
 
