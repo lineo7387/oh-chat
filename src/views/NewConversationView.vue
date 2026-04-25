@@ -47,6 +47,7 @@ const addFriendError = ref('')
 // Group mode state
 const groupTitle = ref('')
 const selectedUserIds = ref<Set<string>>(new Set())
+const selectedUsersMap = ref<Map<string, SearchResultUser>>(new Map())
 
 // Debounced search
 let searchTimeout: ReturnType<typeof setTimeout> | null = null
@@ -62,6 +63,7 @@ watch(searchQuery, (q) => {
 // Clear selection when switching mode
 watch(mode, () => {
   selectedUserIds.value.clear()
+  selectedUsersMap.value.clear()
   groupTitle.value = ''
   createError.value = ''
   searchQuery.value = ''
@@ -121,17 +123,27 @@ async function createGroup() {
 function toggleUserSelection(userId: string) {
   if (selectedUserIds.value.has(userId)) {
     selectedUserIds.value.delete(userId)
+    selectedUsersMap.value.delete(userId)
   } else {
     selectedUserIds.value.add(userId)
+    const user = searchResults.value.find((u) => u.id === userId)
+    if (user) {
+      selectedUsersMap.value.set(userId, user)
+    }
   }
 }
 
 function removeSelectedUser(userId: string) {
   selectedUserIds.value.delete(userId)
+  selectedUsersMap.value.delete(userId)
 }
 
 const selectedUsers = computed(() => {
-  return searchResults.value.filter((u) => selectedUserIds.value.has(u.id))
+  return Array.from(selectedUsersMap.value.values())
+})
+
+const filteredSearchResults = computed(() => {
+  return searchResults.value.filter((u) => !selectedUserIds.value.has(u.id))
 })
 
 const canCreateGroup = computed(() => {
@@ -258,7 +270,7 @@ async function sendFriendRequest(userId: string) {
 
       <!-- No results -->
       <div
-        v-else-if="searchResults.length === 0"
+        v-else-if="filteredSearchResults.length === 0"
         class="flex flex-col items-center justify-center py-16 text-center"
       >
         <p class="text-sm text-muted-foreground">No users found matching "{{ searchQuery }}"</p>
@@ -267,7 +279,7 @@ async function sendFriendRequest(userId: string) {
       <!-- User list -->
       <div v-else class="space-y-1">
         <div
-          v-for="user in searchResults"
+          v-for="user in filteredSearchResults"
           :key="user.id"
           :class="[
             'flex items-center gap-3 rounded-2xl px-4 py-3 transition-all duration-200',

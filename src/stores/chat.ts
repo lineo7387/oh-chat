@@ -527,8 +527,26 @@ export const useChatStore = defineStore('chat', () => {
     const myParticipant = conv.participants.find((p) => p.user_id === userId)
     if (myParticipant) {
       myParticipant.unread_count = unreadCount
-      myParticipant.last_read_at = (newData.last_read_at as string | null) ?? myParticipant.last_read_at
+      myParticipant.last_read_at =
+        (newData.last_read_at as string | null) ?? myParticipant.last_read_at
     }
+  }
+
+  function handleParticipantInsert(payload: Record<string, unknown>) {
+    const authStore = useAuthStore()
+    const newData = payload.new as Record<string, unknown> | undefined
+    if (!newData) return
+
+    const userId = newData.user_id as string
+    if (userId !== authStore.user?.id) return
+
+    const convId = newData.conversation_id as string
+
+    // Avoid duplicate fetch if conversation already exists locally
+    const alreadyExists = conversations.value.some((c) => c.id === convId)
+    if (alreadyExists) return
+
+    fetchConversations()
   }
 
   function subscribeToMessages() {
@@ -550,6 +568,7 @@ export const useChatStore = defineStore('chat', () => {
       .subscribe()
 
     // Also subscribe to conversation_participants for unread_count updates
+    // and new participant insertions (when user is invited to a group)
     if (!_participantsChannel) {
       _participantsChannel = supabase
         .channel('conversation_participants')
@@ -562,6 +581,17 @@ export const useChatStore = defineStore('chat', () => {
           },
           (payload) => {
             handleParticipantUpdate(payload as Record<string, unknown>)
+          },
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'conversation_participants',
+          },
+          (payload) => {
+            handleParticipantInsert(payload as Record<string, unknown>)
           },
         )
         .subscribe()

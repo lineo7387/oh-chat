@@ -272,7 +272,9 @@ async function saveProfile() {
           <div class="rounded-[2rem] border border-border/50 bg-card p-6 shadow-soft">
             <div class="flex items-center gap-2">
               <PhPushPin :size="18" class="text-secondary" />
-              <h3 class="font-heading text-sm font-semibold text-foreground">Pinned Conversations</h3>
+              <h3 class="font-heading text-sm font-semibold text-foreground">
+                Pinned Conversations
+              </h3>
             </div>
             <div v-if="pinnedConversations.length === 0" class="mt-3 text-sm text-muted-foreground">
               No pinned conversations.
@@ -307,7 +309,9 @@ async function saveProfile() {
           <div class="rounded-[2rem] border border-border/50 bg-card p-6 shadow-soft">
             <div class="flex items-center gap-2">
               <PhBellSlash :size="18" class="text-destructive" />
-              <h3 class="font-heading text-sm font-semibold text-foreground">Muted Conversations</h3>
+              <h3 class="font-heading text-sm font-semibold text-foreground">
+                Muted Conversations
+              </h3>
             </div>
             <div v-if="mutedConversations.length === 0" class="mt-3 text-sm text-muted-foreground">
               No muted conversations.

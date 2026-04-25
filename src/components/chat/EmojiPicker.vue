@@ -31,13 +31,12 @@ onClickOutside(pickerRef, () => {
   }
 })
 
-const categoriesWithRecent = computed<(EmojiCategory | { id: string; name: string; emojis: string[] })[]>(() => {
+const categoriesWithRecent = computed<
+  (EmojiCategory | { id: string; name: string; emojis: string[] })[]
+>(() => {
   const recent = recentEmojis.value
   if (recent.length > 0) {
-    return [
-      { id: 'recent', name: 'Recent', emojis: recent },
-      ...emojiCategories,
-    ]
+    return [{ id: 'recent', name: 'Recent', emojis: recent }, ...emojiCategories]
   }
   return emojiCategories
 })
@@ -88,7 +87,9 @@ watch(
   >
     <!-- Search -->
     <div class="border-b border-border/50 px-3 py-2.5">
-      <div class="flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5">
+      <div
+        class="flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5"
+      >
         <PhMagnifyingGlass :size="14" class="shrink-0 text-muted-foreground" />
         <input
           v-model="searchQuery"
@@ -100,7 +101,10 @@ watch(
     </div>
 
     <!-- Category tabs -->
-    <div v-if="!searchQuery.trim()" class="flex gap-1 overflow-x-auto border-b border-border/50 px-3 py-2 scrollbar-hide">
+    <div
+      v-if="!searchQuery.trim()"
+      class="flex gap-1 overflow-x-auto border-b border-border/50 px-3 py-2 scrollbar-hide"
+    >
       <button
         v-for="cat in categoriesWithRecent"
         :key="cat.id"
@@ -123,7 +127,10 @@ watch(
 
     <!-- Emoji grid -->
     <div class="max-h-[240px] overflow-y-auto px-2 py-2">
-      <div v-if="displayedEmojis.length === 0" class="py-8 text-center text-sm text-muted-foreground">
+      <div
+        v-if="displayedEmojis.length === 0"
+        class="py-8 text-center text-sm text-muted-foreground"
+      >
         No emojis found
       </div>
       <div v-else class="grid grid-cols-8 gap-1">

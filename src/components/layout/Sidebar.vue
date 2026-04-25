@@ -158,79 +158,82 @@ function truncatePreview(text: string | undefined, max = 40): string {
 
       <!-- Conversations -->
       <div v-else class="space-y-0.5 py-2">
-        <RouterLink
+        <div
           v-for="conv in chatStore.sortedConversations"
           :key="conv.id"
-          :to="`/chat/${conv.id}`"
           :class="[
             'group flex items-center gap-3 rounded-2xl px-3 py-2.5 transition-all duration-200',
             chatStore.currentConversationId === conv.id
               ? 'bg-primary/10 text-primary'
               : 'text-foreground hover:bg-muted',
           ]"
-          @click="close"
         >
-          <Avatar
-            :src="chatStore.getConversationAvatar(conv)"
-            :alt="chatStore.getConversationName(conv)"
-            size="sm"
-            :status="chatStore.getConversationStatus(conv)"
-          />
-          <div class="min-w-0 flex-1">
-            <div class="flex items-center justify-between">
-              <div class="flex min-w-0 items-center gap-1.5">
-                <PhPushPin
-                  v-if="settingsStore.isPinned(conv.id)"
-                  :size="12"
-                  weight="fill"
-                  class="shrink-0 text-secondary"
-                />
+          <RouterLink
+            :to="`/chat/${conv.id}`"
+            class="flex flex-1 items-center gap-3 min-w-0"
+            @click="close"
+          >
+            <Avatar
+              :src="chatStore.getConversationAvatar(conv)"
+              :alt="chatStore.getConversationName(conv)"
+              size="sm"
+              :status="chatStore.getConversationStatus(conv)"
+            />
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center justify-between">
+                <div class="flex min-w-0 items-center gap-1.5">
+                  <PhPushPin
+                    v-if="settingsStore.isPinned(conv.id)"
+                    :size="12"
+                    weight="fill"
+                    class="shrink-0 text-secondary"
+                  />
+                  <p
+                    :class="[
+                      'truncate text-sm',
+                      conv.unreadCount > 0 ? 'font-semibold text-foreground' : 'font-medium',
+                    ]"
+                  >
+                    {{ chatStore.getConversationName(conv) }}
+                  </p>
+                </div>
+                <div class="flex shrink-0 items-center gap-1">
+                  <PhBellSlash
+                    v-if="settingsStore.isMuted(conv.id)"
+                    :size="12"
+                    class="text-muted-foreground/60"
+                  />
+                  <span v-if="conv.lastMessage" class="text-[10px] text-muted-foreground">
+                    {{ formatTime(conv.lastMessage.created_at) }}
+                  </span>
+                </div>
+              </div>
+              <div class="flex items-center justify-between">
                 <p
                   :class="[
-                    'truncate text-sm',
-                    conv.unreadCount > 0 ? 'font-semibold text-foreground' : 'font-medium',
+                    'truncate text-xs',
+                    conv.unreadCount > 0
+                      ? 'font-medium text-foreground/80'
+                      : 'text-muted-foreground',
                   ]"
                 >
-                  {{ chatStore.getConversationName(conv) }}
+                  {{ truncatePreview(conv.lastMessage?.content) }}
                 </p>
-              </div>
-              <div class="flex shrink-0 items-center gap-1">
-                <PhBellSlash
-                  v-if="settingsStore.isMuted(conv.id)"
-                  :size="12"
-                  class="text-muted-foreground/60"
-                />
                 <span
-                  v-if="conv.lastMessage && conv.unreadCount === 0"
-                  class="text-[10px] text-muted-foreground"
+                  v-if="conv.unreadCount > 0"
+                  class="flex h-4 min-w-[1rem] shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground"
                 >
-                  {{ formatTime(conv.lastMessage.created_at) }}
+                  {{ conv.unreadCount > 99 ? '99+' : conv.unreadCount }}
                 </span>
               </div>
             </div>
-            <div class="flex items-center justify-between">
-              <p
-                :class="[
-                  'truncate text-xs',
-                  conv.unreadCount > 0 ? 'font-medium text-foreground/80' : 'text-muted-foreground',
-                ]"
-              >
-                {{ truncatePreview(conv.lastMessage?.content) }}
-              </p>
-              <span
-                v-if="conv.unreadCount > 0"
-                class="flex h-4 min-w-[1rem] shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground"
-              >
-                {{ conv.unreadCount > 99 ? '99+' : conv.unreadCount }}
-              </span>
-            </div>
-          </div>
+          </RouterLink>
 
           <!-- More options -->
           <div class="opacity-0 transition-opacity group-hover:opacity-100">
             <ConversationSettingsMenu :conversation-id="conv.id" />
           </div>
-        </RouterLink>
+        </div>
       </div>
     </div>
 

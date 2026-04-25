@@ -72,7 +72,9 @@ function cancelEditNote() {
     >
       <!-- Edit Note inline form -->
       <div v-if="isEditingNote" class="px-3 py-2">
-        <div class="flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5">
+        <div
+          class="flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5"
+        >
           <input
             v-model="noteInput"
             type="text"
@@ -99,7 +101,7 @@ function cancelEditNote() {
       <template v-else>
         <button
           class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-muted"
-          @click="togglePin"
+          @click.stop="togglePin"
         >
           <PhPushPin :size="16" :weight="isPinned() ? 'fill' : 'regular'" />
           <span>{{ isPinned() ? 'Unpin Conversation' : 'Pin Conversation' }}</span>
@@ -107,7 +109,7 @@ function cancelEditNote() {
 
         <button
           class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-muted"
-          @click="toggleMute"
+          @click.stop="toggleMute"
         >
           <component :is="isMuted() ? PhBellSlash : PhBell" :size="16" />
           <span>{{ isMuted() ? 'Unmute Notifications' : 'Mute Notifications' }}</span>
@@ -117,7 +119,7 @@ function cancelEditNote() {
 
         <button
           class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-muted"
-          @click="startEditNote"
+          @click.stop="startEditNote"
         >
           <PhPencilSimple :size="16" />
           <span>Edit Note</span>

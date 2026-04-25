@@ -171,7 +171,6 @@ function formatMessageTime(dateStr: string): string {
   return new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
-
 const conversationName = ref('Loading...')
 const conversationAvatar = ref<string | undefined>(undefined)
 const conversationStatus = ref<Profile['status'] | undefined>(undefined)
@@ -264,97 +263,91 @@ watch(
       </div>
 
       <div v-else class="space-y-4">
-        <template
-          v-for="(msg, index) in chatStore.messages"
-          :key="msg.id"
-        >
+        <template v-for="(msg, index) in chatStore.messages" :key="msg.id">
           <!-- New messages boundary -->
-          <div
-            v-if="index === unreadBoundaryIndex"
-            class="flex items-center gap-3 py-2"
-          >
+          <div v-if="index === unreadBoundaryIndex" class="flex items-center gap-3 py-2">
             <div class="h-px flex-1 bg-secondary/30" />
-            <span class="shrink-0 text-[10px] font-medium uppercase tracking-wider text-secondary">New messages</span>
+            <span class="shrink-0 text-[10px] font-medium uppercase tracking-wider text-secondary"
+              >New messages</span
+            >
             <div class="h-px flex-1 bg-secondary/30" />
           </div>
-          <div
-            :class="isMyMessage(msg.sender_id) ? 'flex justify-end' : 'flex justify-start'"
-          >
-          <div
-            class="flex max-w-[80%] gap-2"
-            :class="isMyMessage(msg.sender_id) ? 'flex-row-reverse' : ''"
-          >
-            <Avatar
-              v-if="!isMyMessage(msg.sender_id) && msg.sender"
-              size="sm"
-              :src="msg.sender.avatar_url"
-              :alt="msg.sender.display_name ?? msg.sender.username"
-            />
+          <div :class="isMyMessage(msg.sender_id) ? 'flex justify-end' : 'flex justify-start'">
             <div
-              :class="[
-                'rounded-[1.5rem] px-5 py-3 text-sm leading-relaxed',
-                isMyMessage(msg.sender_id)
-                  ? 'rounded-br-md bg-primary text-primary-foreground'
-                  : 'rounded-bl-md bg-muted text-foreground',
-              ]"
+              class="flex max-w-[80%] gap-2"
+              :class="isMyMessage(msg.sender_id) ? 'flex-row-reverse' : ''"
             >
-              <p
+              <Avatar
                 v-if="!isMyMessage(msg.sender_id) && msg.sender"
-                class="mb-0.5 text-xs font-medium text-primary/70"
-              >
-                {{ msg.sender.display_name ?? msg.sender.username }}
-              </p>
-
-              <!-- Attachments -->
-              <div v-if="msg.attachments && msg.attachments.length > 0" class="mb-2 space-y-2">
-                <div v-for="attachment in msg.attachments" :key="attachment.id">
-                  <!-- Image attachment -->
-                  <div v-if="isImageAttachment(attachment)" class="overflow-hidden rounded-xl">
-                    <img
-                      :src="getAttachmentUrl(attachment)"
-                      :alt="attachment.file_name"
-                      class="max-h-60 max-w-full object-cover"
-                      loading="lazy"
-                    />
-                  </div>
-
-                  <!-- File attachment -->
-                  <a
-                    v-else
-                    :href="getAttachmentUrl(attachment)"
-                    :download="attachment.file_name"
-                    class="flex items-center gap-3 rounded-xl border border-border/50 bg-white/40 px-3 py-2.5 transition-colors hover:bg-white/70"
-                    :class="isMyMessage(msg.sender_id) ? 'border-primary-foreground/20' : ''"
-                  >
-                    <div
-                      class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted"
-                    >
-                      <PhFile :size="18" />
-                    </div>
-                    <div class="min-w-0 flex-1">
-                      <p class="truncate text-sm font-medium">{{ attachment.file_name }}</p>
-                      <p class="text-xs opacity-70">{{ formatFileSize(attachment.file_size) }}</p>
-                    </div>
-                    <PhDownload :size="16" class="shrink-0 opacity-70" />
-                  </a>
-                </div>
-              </div>
-
-              <!-- Message text -->
-              <p v-if="msg.content">{{ msg.content }}</p>
-
-              <p
+                size="sm"
+                :src="msg.sender.avatar_url"
+                :alt="msg.sender.display_name ?? msg.sender.username"
+              />
+              <div
                 :class="[
-                  'mt-1 text-right text-[10px]',
+                  'rounded-[1.5rem] px-5 py-3 text-sm leading-relaxed',
                   isMyMessage(msg.sender_id)
-                    ? 'text-primary-foreground/70'
-                    : 'text-muted-foreground',
+                    ? 'rounded-br-md bg-primary text-primary-foreground'
+                    : 'rounded-bl-md bg-muted text-foreground',
                 ]"
               >
-                {{ formatMessageTime(msg.created_at) }}
-              </p>
+                <p
+                  v-if="!isMyMessage(msg.sender_id) && msg.sender"
+                  class="mb-0.5 text-xs font-medium text-primary/70"
+                >
+                  {{ msg.sender.display_name ?? msg.sender.username }}
+                </p>
+
+                <!-- Attachments -->
+                <div v-if="msg.attachments && msg.attachments.length > 0" class="mb-2 space-y-2">
+                  <div v-for="attachment in msg.attachments" :key="attachment.id">
+                    <!-- Image attachment -->
+                    <div v-if="isImageAttachment(attachment)" class="overflow-hidden rounded-xl">
+                      <img
+                        :src="getAttachmentUrl(attachment)"
+                        :alt="attachment.file_name"
+                        class="max-h-60 max-w-full object-cover"
+                        loading="lazy"
+                      />
+                    </div>
+
+                    <!-- File attachment -->
+                    <a
+                      v-else
+                      :href="getAttachmentUrl(attachment)"
+                      :download="attachment.file_name"
+                      class="flex items-center gap-3 rounded-xl border border-border/50 bg-white/40 px-3 py-2.5 transition-colors hover:bg-white/70"
+                      :class="isMyMessage(msg.sender_id) ? 'border-primary-foreground/20' : ''"
+                    >
+                      <div
+                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted"
+                      >
+                        <PhFile :size="18" />
+                      </div>
+                      <div class="min-w-0 flex-1">
+                        <p class="truncate text-sm font-medium">{{ attachment.file_name }}</p>
+                        <p class="text-xs opacity-70">{{ formatFileSize(attachment.file_size) }}</p>
+                      </div>
+                      <PhDownload :size="16" class="shrink-0 opacity-70" />
+                    </a>
+                  </div>
+                </div>
+
+                <!-- Message text -->
+                <p v-if="msg.content">{{ msg.content }}</p>
+
+                <p
+                  :class="[
+                    'mt-1 text-right text-[10px]',
+                    isMyMessage(msg.sender_id)
+                      ? 'text-primary-foreground/70'
+                      : 'text-muted-foreground',
+                  ]"
+                >
+                  {{ formatMessageTime(msg.created_at) }}
+                </p>
+              </div>
             </div>
-          </div>
           </div>
         </template>
       </div>
@@ -416,10 +409,7 @@ watch(
           >
             <PhSmiley :size="20" />
           </button>
-          <EmojiPicker
-            v-model="showEmojiPicker"
-            @select="insertEmoji"
-          />
+          <EmojiPicker v-model="showEmojiPicker" @select="insertEmoji" />
         </div>
 
         <button

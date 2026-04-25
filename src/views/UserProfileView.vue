@@ -46,9 +46,7 @@ const isEditingNote = ref(false)
 // Find existing direct conversation with this user
 const directConversation = computed(() => {
   return chatStore.conversations.find(
-    (c) =>
-      c.type === 'direct' &&
-      c.participants.some((p) => p.user_id === userId.value),
+    (c) => c.type === 'direct' && c.participants.some((p) => p.user_id === userId.value),
   )
 })
 
