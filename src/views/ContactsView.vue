@@ -190,6 +190,9 @@ async function startChat(userId: string) {
               </p>
               <p class="truncate text-xs text-muted-foreground">
                 @{{ friend.otherProfile.username }}
+                <span v-if="friend.otherProfile.email" class="ml-1 text-muted-foreground/60"
+                  >· {{ friend.otherProfile.email }}</span
+                >
               </p>
             </RouterLink>
             <div class="flex items-center gap-1">
@@ -242,6 +245,9 @@ async function startChat(userId: string) {
               </p>
               <p class="truncate text-xs text-muted-foreground">
                 @{{ request.otherProfile.username }}
+                <span v-if="request.otherProfile.email" class="ml-1 text-muted-foreground/60"
+                  >· {{ request.otherProfile.email }}</span
+                >
               </p>
             </RouterLink>
             <div class="flex items-center gap-1">
@@ -286,6 +292,9 @@ async function startChat(userId: string) {
                 </p>
                 <p class="truncate text-xs text-muted-foreground">
                   @{{ request.otherProfile.username }}
+                  <span v-if="request.otherProfile.email" class="ml-1 text-muted-foreground/60"
+                    >· {{ request.otherProfile.email }}</span
+                  >
                 </p>
               </div>
               <span class="rounded-full bg-accent px-3 py-1 text-xs text-foreground/70">

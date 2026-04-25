@@ -59,7 +59,11 @@ const displayName = computed(() => {
 })
 
 const statusText = computed(() => {
-  return authStore.profile?.status || 'offline'
+  // Depend on statusTick so this re-evaluates when it changes
+  void chatStore.statusTick
+  if (!authStore.profile?.last_seen) return 'offline'
+  const lastSeen = new Date(authStore.profile.last_seen).getTime()
+  return Date.now() - lastSeen < 2 * 60 * 1000 ? 'online' : 'offline'
 })
 
 // Fetch conversations when authenticated

@@ -26,6 +26,7 @@ interface SearchResultUser {
   display_name: string | null
   avatar_url: string | null
   status: 'online' | 'offline' | 'away'
+  email: string | null
 }
 
 type CreateMode = 'direct' | 'group'
@@ -74,7 +75,7 @@ async function performSearch(query: string) {
   isSearching.value = true
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, username, display_name, avatar_url, status')
+    .select('id, username, display_name, avatar_url, status, email')
     .or(`username.ilike.%${query}%,display_name.ilike.%${query}%`)
     .neq('id', authStore.user?.id ?? '')
     .limit(20)
@@ -312,7 +313,12 @@ async function sendFriendRequest(userId: string) {
             <p class="truncate font-medium text-foreground">
               {{ user.display_name ?? user.username }}
             </p>
-            <p class="truncate text-xs text-muted-foreground">@{{ user.username }}</p>
+            <p class="truncate text-xs text-muted-foreground">
+              @{{ user.username }}
+              <span v-if="user.email" class="ml-1 text-muted-foreground/60"
+                >· {{ user.email }}</span
+              >
+            </p>
           </RouterLink>
           <div class="flex items-center gap-1.5">
             <Button

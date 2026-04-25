@@ -71,7 +71,7 @@ async function loadProfile(id: string) {
   const { data, error } = await supabase
     .from('profiles')
     .select(
-      'id, username, display_name, avatar_url, bio, status, last_seen, created_at, updated_at',
+      'id, username, display_name, avatar_url, bio, status, last_seen, email, created_at, updated_at',
     )
     .eq('id', id)
     .single()
@@ -230,6 +230,9 @@ function formatJoinDate(dateStr: string): string {
           {{ profile.display_name ?? profile.username }}
         </h2>
         <p class="mt-1 text-sm text-muted-foreground">@{{ profile.username }}</p>
+        <p v-if="profile.email" class="mt-1 text-sm text-muted-foreground/70">
+          {{ profile.email }}
+        </p>
 
         <p v-if="profile.bio" class="mt-4 text-foreground/80">
           {{ profile.bio }}

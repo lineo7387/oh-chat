@@ -24,17 +24,20 @@ oh-chat 是一个实时社交聊天 Web 应用，采用有机/自然（wabi-sabi
 ## 代码规范
 
 ### Vue 组件
+
 - 统一使用 `<script setup lang="ts">`
 - props / emits 显式标注类型，简单场景可推断
 - 组件合理拆分，不追求过细粒度
 - 参考 antfu 的 Vue 风格指南
 
 ### TypeScript
+
 - 优先显式类型标注
 - 复杂类型定义在 `src/types/` 目录
 - Supabase 数据库类型在 `src/types/database.ts`
 
 ### 样式
+
 - 使用 Tailwind v4 的 `@theme` 定义 design token
 - 设计系统见 `design.md` 和 `src/assets/main.css`
 - 有机设计风格：温暖大地色系、圆角、柔和阴影、噪点纹理
@@ -43,8 +46,10 @@ oh-chat 是一个实时社交聊天 Web 应用，采用有机/自然（wabi-sabi
 - 缓动函数: `ease-organic` = `cubic-bezier(0.22, 1, 0.36, 1)`
 
 ### 组件库策略
+
 - shadcn-vue **仅用于复杂交互组件**（Dialog、Dropdown、Toast）
 - 简单组件（Button、Input、Card、Avatar 等）全部手写
+- **手势/滑动/拖拽等复杂交互，优先使用成熟库** 禁止自行实现底层 pointer/touch 事件处理
 
 ## 项目结构
 
@@ -73,17 +78,20 @@ src/
 ## 工作流程
 
 ### 核心规则
+
 1. **每次完成任务后必须停下来等待用户确认**
 2. **同步更新** `openspec/changes/*/tasks.md` 的进度
 3. 不要自动进入下一项任务
 4. 不要假设用户沉默等于同意
 
 ### OpenSpec 变更追踪
+
 - 活跃变更: `oh-chat-foundation`
 - 任务文件: `openspec/changes/oh-chat-foundation/tasks.md`
 - 完成项标记 `[x]`，进行中标记 `~[ ]~`，待办保持 `[ ]`
 
 ### 代码提交
+
 - 使用 `pnpm run format`（oxfmt）格式化代码
 - 使用 `pnpm run lint` 检查代码
 - 使用 `pnpm run type-check` 检查类型
@@ -91,20 +99,20 @@ src/
 
 ## 设计系统速查
 
-| Token | 值 |
-|-------|-----|
-| background | `#FDFCF8` |
-| foreground | `#2C2C24` |
-| primary | `#5D7052` |
-| secondary | `#C18C5D` |
-| accent | `#E6DCCD` |
-| muted | `#F0EBE5` |
-| border | `#DED8CF` |
-| destructive | `#A85448` |
-| card | `#FEFEFA` |
-| 标题字体 | Fraunces |
-| 正文字体 | Nunito |
-| 缓动 | `cubic-bezier(0.22, 1, 0.36, 1)` |
+| Token       | 值                               |
+| ----------- | -------------------------------- |
+| background  | `#FDFCF8`                        |
+| foreground  | `#2C2C24`                        |
+| primary     | `#5D7052`                        |
+| secondary   | `#C18C5D`                        |
+| accent      | `#E6DCCD`                        |
+| muted       | `#F0EBE5`                        |
+| border      | `#DED8CF`                        |
+| destructive | `#A85448`                        |
+| card        | `#FEFEFA`                        |
+| 标题字体    | Fraunces                         |
+| 正文字体    | Nunito                           |
+| 缓动        | `cubic-bezier(0.22, 1, 0.36, 1)` |
 
 ## 路由结构
 
@@ -134,14 +142,30 @@ pnpm format       # oxfmt 格式化
 ## 新对话快速恢复
 
 如果你在新对话中继续本项目，请先按顺序执行：
+
 1. 读取本文件（CLAUDE.md）
 2. 读取 `openspec/changes/oh-chat-foundation/tasks.md`
 3. 读取 `openspec/changes/chat-enhancements/tasks.md`
 4. 执行 `git status` 确认当前分支状态
 
+### 快速行为校准（粘贴给 Claude）
+
+```
+我是 oh-chat 项目的开发者。请严格遵守：
+1. 先读取 CLAUDE.md 和 openspec/changes/*/tasks.md。
+2. 执行优先，分析从简。有疑问先简短确认，不要假设。
+3. 复杂交互（滑动、拖拽、手势）必须优先使用成熟库，禁止自行写底层事件处理。
+4. 代码必须 work，不写"看起来可行"的代码。完成后立即跑 pnpm type-check + lint + format。
+5. 做完一项必须停下等我确认，不要自动进入下一项。同步更新 tasks.md 进度。
+6. 回复简洁，不要写小作文。
+
+当前任务：
+```
+
 ### 当前进度摘要（截至 2026/04/24）
 
 **已完成（oh-chat-foundation）：**
+
 - 项目地基：Tailwind v4 设计系统、基础 UI 组件、布局、路由
 - Supabase 数据库：6 张表 + RLS 策略 + Realtime 配置 + 21 个 migrations
 - 真实 Auth：注册/登录/登出，邮箱确认流程，路由守卫
@@ -152,11 +176,13 @@ pnpm format       # oxfmt 格式化
 - 群聊功能：create_group_conversation RPC，NewConversationView 双模式（Direct/Group），GroupInfoPanel 成员管理、添加成员、编辑群名、退出群聊
 
 **进行中（OpenSpec: chat-enhancements）：**
+
 - Emoji 选择面板、语音消息、未读消息指示器、好友/群备注 + 免打扰 + 置顶
 - 数据库变更：`conversation_settings` 表（custom_name, is_muted, is_pinned, pinned_at），`conversation_participants` 扩展（unread_count, last_read_at），`messages.type` 新增 `'voice'`，`voice-messages` Storage bucket
 - 设置入口：Sidebar 会话项快捷菜单、ChatView 头部菜单、UserProfileView 好友资料页
 
 **剩余任务：**
+
 - chat-enhancements 全部 36 项任务待实现
 
 ### 关键状态

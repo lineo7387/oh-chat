@@ -34,6 +34,7 @@ export const useChatStore = defineStore('chat', () => {
   const isLoadingMessages = ref(false)
   const isLoadingMore = ref(false)
   const hasMoreMessages = ref(true)
+  const statusTick = ref(0)
   const settingsStore = useConversationSettingsStore()
 
   const currentConversation = computed(() => {
@@ -83,7 +84,11 @@ export const useChatStore = defineStore('chat', () => {
     if (conv.type !== 'direct') return undefined
     const authStore = useAuthStore()
     const other = conv.participants.find((p) => p.user_id !== authStore.user?.id)
-    return other?.profile?.status
+    if (!other?.profile?.last_seen) return undefined
+    // Access statusTick so Vue re-evaluates when it changes
+    void statusTick.value
+    const lastSeen = new Date(other.profile.last_seen).getTime()
+    return Date.now() - lastSeen < 2 * 60 * 1000 ? 'online' : 'offline'
   }
 
   async function fetchConversations() {
@@ -115,7 +120,7 @@ export const useChatStore = defineStore('chat', () => {
           `*,
           participants:conversation_participants(
             user_id, role, joined_at, last_read_message_id,
-            profile:profiles!conversation_participants_user_id_fkey(id, username, display_name, avatar_url, status)
+            profile:profiles!conversation_participants_user_id_fkey(id, username, display_name, avatar_url, status, email)
           )`,
         )
         .in('id', ids)
@@ -498,6 +503,8 @@ export const useChatStore = defineStore('chat', () => {
 
   let _messageChannel: ReturnType<typeof supabase.channel> | null = null
   let _participantsChannel: ReturnType<typeof supabase.channel> | null = null
+  let _profilesChannel: ReturnType<typeof supabase.channel> | null = null
+  let _statusTickInterval: ReturnType<typeof setInterval> | null = null
 
   function handleIncomingMessage(msg: Record<string, unknown>) {
     const authStore = useAuthStore()
@@ -542,8 +549,12 @@ export const useChatStore = defineStore('chat', () => {
         conv.unreadCount++
       }
     } else {
-      // New conversation not yet in list — refresh to pick it up
-      fetchConversations()
+      // New conversation not yet in list — if hidden, unhide so it reappears
+      if (settingsStore.isHidden(convId)) {
+        settingsStore.upsertSetting(convId, { is_hidden: false }).then(() => fetchConversations())
+      } else {
+        fetchConversations()
+      }
     }
   }
 
@@ -595,6 +606,28 @@ export const useChatStore = defineStore('chat', () => {
     fetchConversations()
   }
 
+  function handleProfileUpdate(payload: Record<string, unknown>) {
+    const authStore = useAuthStore()
+    const newData = payload.new as Record<string, unknown> | undefined
+    if (!newData) return
+
+    const updatedProfile = newData as unknown as Profile
+
+    // Update current user's own profile
+    if (updatedProfile.id === authStore.user?.id && authStore.profile) {
+      authStore.profile = { ...authStore.profile, ...updatedProfile }
+    }
+
+    // Update in all conversations' participants
+    for (const conv of conversations.value) {
+      for (const p of conv.participants) {
+        if (p.user_id === updatedProfile.id && p.profile) {
+          p.profile = { ...p.profile, ...updatedProfile }
+        }
+      }
+    }
+  }
+
   function subscribeToMessages() {
     if (_messageChannel) return
 
@@ -642,6 +675,31 @@ export const useChatStore = defineStore('chat', () => {
         )
         .subscribe()
     }
+
+    // Subscribe to profiles for online status updates
+    if (!_profilesChannel) {
+      _profilesChannel = supabase
+        .channel('profiles')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'profiles',
+          },
+          (payload) => {
+            handleProfileUpdate(payload as Record<string, unknown>)
+          },
+        )
+        .subscribe()
+    }
+
+    // Start status tick to refresh online/offline inference every 30s
+    if (!_statusTickInterval) {
+      _statusTickInterval = setInterval(() => {
+        statusTick.value++
+      }, 30000)
+    }
   }
 
   function unsubscribeFromMessages() {
@@ -649,6 +707,12 @@ export const useChatStore = defineStore('chat', () => {
     _messageChannel = null
     _participantsChannel?.unsubscribe()
     _participantsChannel = null
+    _profilesChannel?.unsubscribe()
+    _profilesChannel = null
+    if (_statusTickInterval) {
+      clearInterval(_statusTickInterval)
+      _statusTickInterval = null
+    }
   }
 
   function getAttachmentUrl(storagePath: string): string {
@@ -666,6 +730,7 @@ export const useChatStore = defineStore('chat', () => {
     isLoadingMessages,
     isLoadingMore,
     hasMoreMessages,
+    statusTick,
     fetchConversations,
     setCurrentConversation,
     createDirectConversation,

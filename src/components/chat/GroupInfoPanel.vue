@@ -45,7 +45,13 @@ const isSavingTitle = ref(false)
 const showAddMember = ref(false)
 const searchQuery = ref('')
 const searchResults = ref<
-  Array<{ id: string; username: string; display_name: string | null; avatar_url: string | null }>
+  Array<{
+    id: string
+    username: string
+    display_name: string | null
+    avatar_url: string | null
+    email: string | null
+  }>
 >([])
 const isSearching = ref(false)
 const isAddingMember = ref<string | null>(null)
@@ -143,7 +149,7 @@ async function performSearch(query: string) {
   const existingIds = props.conversation.participants.map((p) => p.user_id)
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, username, display_name, avatar_url')
+    .select('id, username, display_name, avatar_url, email')
     .or(`username.ilike.%${query}%,display_name.ilike.%${query}%`)
     .not('id', 'in', `(${existingIds.join(',')})`)
     .neq('id', authStore.user?.id ?? '')
@@ -310,7 +316,12 @@ function close() {
                   <p class="truncate text-sm font-medium text-foreground">
                     {{ p.profile?.display_name ?? p.profile?.username ?? 'Unknown' }}
                   </p>
-                  <p class="truncate text-xs text-muted-foreground">@{{ p.profile?.username }}</p>
+                  <p class="truncate text-xs text-muted-foreground">
+                    @{{ p.profile?.username }}
+                    <span v-if="p.profile?.email" class="ml-1 text-muted-foreground/60"
+                      >· {{ p.profile.email }}</span
+                    >
+                  </p>
                 </div>
                 <span
                   v-if="p.role !== 'member'"
@@ -380,7 +391,12 @@ function close() {
                     <p class="truncate text-sm font-medium text-foreground">
                       {{ user.display_name ?? user.username }}
                     </p>
-                    <p class="truncate text-xs text-muted-foreground">@{{ user.username }}</p>
+                    <p class="truncate text-xs text-muted-foreground">
+                      @{{ user.username }}
+                      <span v-if="user.email" class="ml-1 text-muted-foreground/60"
+                        >· {{ user.email }}</span
+                      >
+                    </p>
                   </div>
                   <Button
                     size="sm"

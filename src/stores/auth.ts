@@ -11,6 +11,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => !!user.value)
 
   let _authSubscription: { unsubscribe: () => void } | null = null
+  let _heartbeatInterval: ReturnType<typeof setInterval> | null = null
 
   async function init() {
     const { data } = await supabase.auth.getSession()
@@ -36,9 +37,28 @@ export const useAuthStore = defineStore('auth', () => {
     _authSubscription = authListener.subscription
   }
 
+  function startHeartbeat() {
+    if (_heartbeatInterval) return
+    _heartbeatInterval = setInterval(async () => {
+      if (!user.value) return
+      await supabase
+        .from('profiles')
+        .update({ last_seen: new Date().toISOString() })
+        .eq('id', user.value.id)
+    }, 30000)
+  }
+
+  function stopHeartbeat() {
+    if (_heartbeatInterval) {
+      clearInterval(_heartbeatInterval)
+      _heartbeatInterval = null
+    }
+  }
+
   function cleanup() {
     _authSubscription?.unsubscribe()
     _authSubscription = null
+    stopHeartbeat()
   }
 
   function clearError() {
@@ -125,6 +145,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function signOut() {
     isLoading.value = true
     try {
+      stopHeartbeat()
       const { error } = await supabase.auth.signOut()
       if (error) throw error
       user.value = null
@@ -147,6 +168,7 @@ export const useAuthStore = defineStore('auth', () => {
       .single()
     if (data && !error) {
       profile.value = data as Profile
+      startHeartbeat()
     }
   }
 

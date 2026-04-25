@@ -36,8 +36,8 @@ export const useFriendStore = defineStore('friend', () => {
         .from('friends')
         .select(
           `id, sender_id, receiver_id, status, created_at, updated_at,
-          sender:profiles!friends_sender_id_fkey(id, username, display_name, avatar_url, status),
-          receiver:profiles!friends_receiver_id_fkey(id, username, display_name, avatar_url, status)`,
+          sender:profiles!friends_sender_id_fkey(id, username, display_name, avatar_url, status, email),
+          receiver:profiles!friends_receiver_id_fkey(id, username, display_name, avatar_url, status, email)`,
         )
         .eq('status', 'accepted')
         .or(`sender_id.eq.${authId},receiver_id.eq.${authId}`)
@@ -67,7 +67,7 @@ export const useFriendStore = defineStore('friend', () => {
         .from('friends')
         .select(
           `id, sender_id, receiver_id, status, created_at, updated_at,
-          sender:profiles!friends_sender_id_fkey(id, username, display_name, avatar_url, status)`,
+          sender:profiles!friends_sender_id_fkey(id, username, display_name, avatar_url, status, email)`,
         )
         .eq('status', 'pending')
         .eq('receiver_id', authId)
@@ -85,7 +85,7 @@ export const useFriendStore = defineStore('friend', () => {
         .from('friends')
         .select(
           `id, sender_id, receiver_id, status, created_at, updated_at,
-          receiver:profiles!friends_receiver_id_fkey(id, username, display_name, avatar_url, status)`,
+          receiver:profiles!friends_receiver_id_fkey(id, username, display_name, avatar_url, status, email)`,
         )
         .eq('status', 'pending')
         .eq('sender_id', authId)

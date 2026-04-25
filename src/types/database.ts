@@ -16,6 +16,7 @@ export interface Database {
           bio: string | null
           status: 'online' | 'offline' | 'away'
           last_seen: string
+          email: string | null
           created_at: string
           updated_at: string
         }
@@ -27,6 +28,7 @@ export interface Database {
           bio?: string | null
           status?: 'online' | 'offline' | 'away'
           last_seen?: string
+          email?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -38,6 +40,7 @@ export interface Database {
           bio?: string | null
           status?: 'online' | 'offline' | 'away'
           last_seen?: string
+          email?: string | null
           created_at?: string
           updated_at?: string
         }

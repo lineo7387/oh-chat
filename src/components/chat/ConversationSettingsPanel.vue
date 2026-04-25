@@ -9,6 +9,7 @@ import {
   PhCheck,
   PhSpinner,
 } from '@phosphor-icons/vue'
+import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
 import { useConversationSettingsStore } from '@/stores/conversationSettings'
 import Avatar from '@/components/ui/Avatar.vue'
@@ -50,6 +51,13 @@ const conversationAvatar = computed(() => {
 
 const isPinned = computed(() => settingsStore.isPinned(props.conversationId))
 const isMuted = computed(() => settingsStore.isMuted(props.conversationId))
+
+const otherUserEmail = computed(() => {
+  if (!conversation.value || conversation.value.type !== 'direct') return null
+  const authStore = useAuthStore()
+  const other = conversation.value.participants.find((p) => p.user_id !== authStore.user?.id)
+  return other?.profile?.email ?? null
+})
 
 watch(
   () => props.isOpen,
@@ -130,6 +138,9 @@ function close() {
             <h3 class="font-heading text-xl font-bold text-foreground">
               {{ conversationName }}
             </h3>
+            <p v-if="otherUserEmail" class="mt-1 text-sm text-muted-foreground">
+              {{ otherUserEmail }}
+            </p>
           </div>
 
           <!-- Settings List -->

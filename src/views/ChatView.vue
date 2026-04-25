@@ -85,6 +85,8 @@ watch(
       selectedFiles.value = []
       unreadBoundaryIndex.value = -1
       loadConversation(newId)
+    } else if (!newId) {
+      chatStore.setCurrentConversation(null)
     }
   },
   { immediate: true },
@@ -196,7 +198,11 @@ const conversationAvatar = ref<string | undefined>(undefined)
 const conversationStatus = ref<Profile['status'] | undefined>(undefined)
 
 watch(
-  [() => chatStore.currentConversation, () => settingsStore.settingsMap],
+  [
+    () => chatStore.currentConversation,
+    () => settingsStore.settingsMap,
+    () => chatStore.statusTick,
+  ],
   ([conv]) => {
     if (conv) {
       conversationName.value = chatStore.getConversationName(conv)
