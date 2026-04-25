@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, nextTick, computed } from 'vue'
+import { ref, watch, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   PhArrowLeft,
@@ -94,7 +94,25 @@ onMounted(() => {
   if (conversationId.value) {
     loadConversation(conversationId.value)
   }
+  messagesContainer.value?.addEventListener('scroll', onScroll)
 })
+
+onUnmounted(() => {
+  messagesContainer.value?.removeEventListener('scroll', onScroll)
+})
+
+async function onScroll() {
+  const container = messagesContainer.value
+  if (!container) return
+  if (
+    container.scrollTop < 100 &&
+    chatStore.hasMoreMessages &&
+    !chatStore.isLoadingMore &&
+    !chatStore.isLoadingMessages
+  ) {
+    await chatStore.fetchMessages(conversationId.value, { loadMore: true })
+  }
+}
 
 // ── File handling ──────────────────────────────────────────
 
@@ -268,6 +286,12 @@ watch(
       </div>
 
       <div v-else class="space-y-4">
+        <!-- Load more indicator -->
+        <div v-if="chatStore.isLoadingMore" class="flex justify-center py-2">
+          <div
+            class="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent"
+          />
+        </div>
         <template v-for="(msg, index) in chatStore.messages" :key="msg.id">
           <!-- New messages boundary -->
           <div v-if="index === unreadBoundaryIndex" class="flex items-center gap-3 py-2">

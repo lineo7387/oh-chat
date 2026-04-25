@@ -28,6 +28,10 @@ export const useConversationSettingsStore = defineStore('conversationSettings', 
     return getSetting(conversationId)?.custom_name ?? null
   }
 
+  function getClearedAt(conversationId: string): string | null {
+    return getSetting(conversationId)?.cleared_at ?? null
+  }
+
   async function fetchSettings() {
     const authStore = useAuthStore()
     if (!authStore.user) return
@@ -37,7 +41,7 @@ export const useConversationSettingsStore = defineStore('conversationSettings', 
       const { data, error } = await supabase
         .from('conversation_settings')
         .select(
-          'user_id, conversation_id, custom_name, is_muted, is_pinned, pinned_at, is_hidden, updated_at',
+          'user_id, conversation_id, custom_name, is_muted, is_pinned, pinned_at, is_hidden, cleared_at, updated_at',
         )
         .eq('user_id', authStore.user.id)
 
@@ -118,6 +122,13 @@ export const useConversationSettingsStore = defineStore('conversationSettings', 
     })
   }
 
+  async function hideAndClear(conversationId: string) {
+    return upsertSetting(conversationId, {
+      is_hidden: true,
+      cleared_at: new Date().toISOString(),
+    })
+  }
+
   async function setCustomName(conversationId: string, customName: string | null) {
     return upsertSetting(conversationId, {
       custom_name: customName?.trim() || null,
@@ -132,11 +143,13 @@ export const useConversationSettingsStore = defineStore('conversationSettings', 
     isMuted,
     isHidden,
     getCustomName,
+    getClearedAt,
     fetchSettings,
     upsertSetting,
     togglePin,
     toggleMute,
     toggleHide,
+    hideAndClear,
     setCustomName,
   }
 })

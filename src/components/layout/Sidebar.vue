@@ -46,7 +46,8 @@ async function handlePin(convId: string) {
 }
 
 async function handleDelete(convId: string) {
-  await settingsStore.toggleHide(convId)
+  await settingsStore.hideAndClear(convId)
+  await chatStore.fetchConversations()
   // If currently viewing this conversation, navigate away
   if (chatStore.currentConversationId === convId) {
     router.push('/')

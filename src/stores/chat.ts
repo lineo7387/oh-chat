@@ -32,6 +32,8 @@ export const useChatStore = defineStore('chat', () => {
   const messages = ref<Message[]>([])
   const isLoadingConversations = ref(false)
   const isLoadingMessages = ref(false)
+  const isLoadingMore = ref(false)
+  const hasMoreMessages = ref(true)
   const settingsStore = useConversationSettingsStore()
 
   const currentConversation = computed(() => {
@@ -356,10 +358,19 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
-  async function fetchMessages(conversationId: string) {
-    isLoadingMessages.value = true
+  async function fetchMessages(conversationId: string, options?: { loadMore?: boolean }) {
+    const pageSize = 50
+    const clearedAt = settingsStore.getClearedAt(conversationId)
+
+    if (options?.loadMore) {
+      isLoadingMore.value = true
+    } else {
+      isLoadingMessages.value = true
+      hasMoreMessages.value = true
+    }
+
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('messages')
         .select(
           `*,
@@ -368,19 +379,41 @@ export const useChatStore = defineStore('chat', () => {
         )
         .eq('conversation_id', conversationId)
         .eq('is_deleted', false)
-        .order('created_at', { ascending: true })
+
+      if (clearedAt) {
+        query = query.gt('created_at', clearedAt)
+      }
+
+      if (options?.loadMore && messages.value.length > 0) {
+        const oldest = messages.value[0]!
+        query = query.lt('created_at', oldest.created_at)
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false }).limit(pageSize)
 
       if (error) throw error
 
-      messages.value = (data ?? []).map((m: Record<string, unknown>) => ({
+      const fetched = (data ?? []).reverse().map((m: Record<string, unknown>) => ({
         ...(m as unknown as Message),
         sender: (m.sender as Profile) ?? undefined,
         attachments: (m.attachments as Attachment[]) ?? undefined,
       }))
+
+      if (options?.loadMore) {
+        messages.value = [...fetched, ...messages.value]
+      } else {
+        messages.value = fetched
+      }
+
+      hasMoreMessages.value = (data ?? []).length === pageSize
     } catch (error) {
       console.error('Failed to fetch messages:', error)
     } finally {
-      isLoadingMessages.value = false
+      if (options?.loadMore) {
+        isLoadingMore.value = false
+      } else {
+        isLoadingMessages.value = false
+      }
     }
   }
 
@@ -631,6 +664,8 @@ export const useChatStore = defineStore('chat', () => {
     messages,
     isLoadingConversations,
     isLoadingMessages,
+    isLoadingMore,
+    hasMoreMessages,
     fetchConversations,
     setCurrentConversation,
     createDirectConversation,
