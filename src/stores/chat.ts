@@ -506,6 +506,8 @@ export const useChatStore = defineStore('chat', () => {
     if (!authStore.user || !currentConversationId.value)
       return { success: false as const, error: 'Not authenticated' }
 
+    let messageId: string | null = null
+
     try {
       // 1. Create the message with voice type
       const { data: messageData, error: msgError } = await supabase
@@ -520,7 +522,7 @@ export const useChatStore = defineStore('chat', () => {
         .single()
 
       if (msgError || !messageData) throw msgError ?? new Error('Failed to create message')
-      const messageId = messageData.id as string
+      messageId = messageData.id as string
 
       // Optimistically add message
       if (currentConversationId.value) {
@@ -541,12 +543,22 @@ export const useChatStore = defineStore('chat', () => {
 
       if (uploadError) {
         console.error('Failed to upload voice:', uploadError)
+        // Rollback: delete the message since upload failed
+        if (messageId) {
+          await supabase.from('messages').delete().eq('id', messageId)
+          messages.value = messages.value.filter((m) => m.id !== messageId)
+        }
         return { success: false as const, error: uploadError.message }
       }
 
       return { success: true as const }
     } catch (error) {
       console.error('Failed to send voice message:', error)
+      // Rollback on any error
+      if (messageId) {
+        await supabase.from('messages').delete().eq('id', messageId)
+        messages.value = messages.value.filter((m) => m.id !== messageId)
+      }
       return {
         success: false as const,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -555,6 +567,10 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   function getVoiceUrl(conversationId: string, messageId: string): string {
+    if (!conversationId || !messageId) {
+      console.error('[getVoiceUrl] invalid params:', { conversationId, messageId })
+      return ''
+    }
     const { data } = supabase.storage
       .from('voice-messages')
       .getPublicUrl(`${conversationId}/${messageId}/voice.webm`)

@@ -42,6 +42,12 @@ async function togglePlay() {
     return
   }
 
+  if (!props.src) {
+    console.error('[VoicePlayer] src is empty')
+    loadError.value = 'Audio unavailable'
+    return
+  }
+
   if (isPlaying.value) {
     audio.value.pause()
     return
@@ -102,7 +108,7 @@ function onAudioError() {
   const err = audio.value?.error
   const code = err?.code ?? 'unknown'
   const msg = err?.message ?? 'Unknown error'
-  console.error(`[VoicePlayer] audio error (code: ${code}):`, msg)
+  console.error(`[VoicePlayer] audio error (code: ${code}):`, msg, '| src:', props.src)
   loadError.value = `Load failed (${code})`
 }
 
