@@ -12,6 +12,7 @@ import {
   PhFile,
   PhDownload,
   PhImage,
+  PhMicrophone,
 } from '@phosphor-icons/vue'
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
@@ -19,6 +20,8 @@ import { useConversationSettingsStore } from '@/stores/conversationSettings'
 import Avatar from '@/components/ui/Avatar.vue'
 import GroupInfoPanel from '@/components/chat/GroupInfoPanel.vue'
 import EmojiPicker from '@/components/chat/EmojiPicker.vue'
+import VoiceRecorder from '@/components/chat/VoiceRecorder.vue'
+import VoicePlayer from '@/components/chat/VoicePlayer.vue'
 import ConversationSettingsPanel from '@/components/chat/ConversationSettingsPanel.vue'
 import type { Profile, Attachment } from '@/types'
 
@@ -38,6 +41,7 @@ const messagesContainer = ref<HTMLElement | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
 const selectedFiles = ref<File[]>([])
 const isSending = ref(false)
+const isRecordingMode = ref(false)
 const unreadBoundaryIndex = ref(-1)
 
 // Set current conversation and fetch messages
@@ -178,6 +182,26 @@ async function sendMessage() {
   if (result.success) {
     scrollToBottom()
   }
+}
+
+async function onVoiceSend(blob: Blob, duration: number) {
+  isRecordingMode.value = false
+  isSending.value = true
+
+  const result = await chatStore.sendVoiceMessage(blob, duration)
+  isSending.value = false
+
+  if (result.success) {
+    scrollToBottom()
+  }
+}
+
+function isVoiceMessage(msgType: string): boolean {
+  return msgType === 'voice'
+}
+
+function getVoiceMessageUrl(messageId: string): string {
+  return chatStore.getVoiceUrl(conversationId.value, messageId)
 }
 
 function isMyMessage(senderId: string | null): boolean {
@@ -368,8 +392,17 @@ watch(
                   </div>
                 </div>
 
+                <!-- Voice message -->
+                <div v-if="isVoiceMessage(msg.type)" class="mb-1">
+                  <VoicePlayer
+                    :id="msg.id"
+                    :src="getVoiceMessageUrl(msg.id)"
+                    :duration="Number(msg.content) || 0"
+                  />
+                </div>
+
                 <!-- Message text -->
-                <p v-if="msg.content">{{ msg.content }}</p>
+                <p v-else-if="msg.content">{{ msg.content }}</p>
 
                 <p
                   :class="[
@@ -412,7 +445,14 @@ watch(
 
     <!-- Input -->
     <div class="border-t border-border/30 px-4 py-3">
-      <div class="flex items-center gap-2 rounded-full border border-border bg-white/50 px-4 py-2">
+      <!-- Voice Recorder Mode -->
+      <VoiceRecorder v-if="isRecordingMode" @send="onVoiceSend" @cancel="isRecordingMode = false" />
+
+      <!-- Normal Text Input Mode -->
+      <div
+        v-else
+        class="flex items-center gap-2 rounded-full border border-border bg-white/50 px-4 py-2"
+      >
         <input
           ref="fileInput"
           type="file"
@@ -446,6 +486,13 @@ watch(
           </button>
           <EmojiPicker v-model="showEmojiPicker" @select="insertEmoji" />
         </div>
+
+        <button
+          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          @click="isRecordingMode = true"
+        >
+          <PhMicrophone :size="20" />
+        </button>
 
         <button
           class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50"

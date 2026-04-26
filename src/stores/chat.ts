@@ -7,7 +7,7 @@ import type { Conversation, ConversationParticipant, Message, Profile, Attachmen
 
 export interface ConversationWithMeta extends Conversation {
   participants: (ConversationParticipant & { profile: Profile })[]
-  lastMessage?: Pick<Message, 'id' | 'content' | 'created_at' | 'sender_id'>
+  lastMessage?: Pick<Message, 'id' | 'content' | 'created_at' | 'sender_id' | 'type'>
   unreadCount: number
 }
 
@@ -24,6 +24,7 @@ interface LastMessageRow {
   content: string
   created_at: string
   sender_id: string | null
+  type: 'text' | 'image' | 'file' | 'voice'
 }
 
 export const useChatStore = defineStore('chat', () => {
@@ -131,7 +132,7 @@ export const useChatStore = defineStore('chat', () => {
       // 3. Get last message for each conversation
       const { data: lastMessages, error: msgError } = await supabase
         .from('messages')
-        .select('id, conversation_id, content, created_at, sender_id')
+        .select('id, conversation_id, content, created_at, sender_id, type')
         .in('conversation_id', ids)
         .eq('is_deleted', false)
         .order('created_at', { ascending: false })
@@ -173,6 +174,7 @@ export const useChatStore = defineStore('chat', () => {
                 content: lastMsg.content,
                 created_at: lastMsg.created_at,
                 sender_id: lastMsg.sender_id,
+                type: lastMsg.type,
               }
             : undefined,
           unreadCount: myPart?.unread_count ?? 0,
@@ -499,6 +501,66 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  async function sendVoiceMessage(blob: Blob, duration: number) {
+    const authStore = useAuthStore()
+    if (!authStore.user || !currentConversationId.value)
+      return { success: false as const, error: 'Not authenticated' }
+
+    try {
+      // 1. Create the message with voice type
+      const { data: messageData, error: msgError } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: currentConversationId.value,
+          sender_id: authStore.user.id,
+          content: String(Math.round(duration)),
+          type: 'voice',
+        })
+        .select()
+        .single()
+
+      if (msgError || !messageData) throw msgError ?? new Error('Failed to create message')
+      const messageId = messageData.id as string
+
+      // Optimistically add message
+      if (currentConversationId.value) {
+        messages.value.push({
+          ...(messageData as unknown as Message),
+          sender: authStore.profile as Profile,
+          attachments: [],
+        })
+      }
+
+      // 2. Upload voice blob to voice-messages bucket
+      const filePath = `${currentConversationId.value}/${messageId}/voice.webm`
+      const { error: uploadError } = await supabase.storage
+        .from('voice-messages')
+        .upload(filePath, blob, {
+          contentType: 'audio/webm',
+        })
+
+      if (uploadError) {
+        console.error('Failed to upload voice:', uploadError)
+        return { success: false as const, error: uploadError.message }
+      }
+
+      return { success: true as const }
+    } catch (error) {
+      console.error('Failed to send voice message:', error)
+      return {
+        success: false as const,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }
+    }
+  }
+
+  function getVoiceUrl(conversationId: string, messageId: string): string {
+    const { data } = supabase.storage
+      .from('voice-messages')
+      .getPublicUrl(`${conversationId}/${messageId}/voice.webm`)
+    return data.publicUrl
+  }
+
   // ── Realtime ───────────────────────────────────────────────
 
   let _messageChannel: ReturnType<typeof supabase.channel> | null = null
@@ -537,6 +599,7 @@ export const useChatStore = defineStore('chat', () => {
         content: msg.content as string,
         created_at: msg.created_at as string,
         sender_id: senderId,
+        type: msg.type as 'text' | 'image' | 'file' | 'voice',
       }
       // Bubble to top
       const idx = conversations.value.indexOf(conv)
@@ -744,8 +807,10 @@ export const useChatStore = defineStore('chat', () => {
     getConversationAvatar,
     getConversationStatus,
     getAttachmentUrl,
+    getVoiceUrl,
     subscribeToMessages,
     unsubscribeFromMessages,
     markAsRead,
+    sendVoiceMessage,
   }
 })

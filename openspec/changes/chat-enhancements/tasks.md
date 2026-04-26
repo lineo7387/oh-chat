@@ -45,19 +45,19 @@
 
 ## 5. Voice Messages
 
-- [ ] 5.1 Create `src/composables/useVoiceRecorder.ts` (MediaRecorder API, max 60s, WebM/Opus)
-- [ ] 5.2 Create `src/components/chat/VoiceRecorder.vue` UI component (hold-to-record, cancel gesture, duration timer)
-- [ ] 5.3 Create `src/components/chat/VoicePlayer.vue` component (play/pause, progress bar, duration display)
-- [ ] 5.4 Update chat store `sendMessage` to support voice type and audio file upload
-- [ ] 5.5 Update ChatView message rendering to show VoicePlayer for `type === 'voice'` messages
-- [ ] 5.6 Add microphone button to ChatView input area (show/hide based on MediaRecorder support)
-- [ ] 5.7 Handle voice message upload errors and loading states
+- [x] 5.1 Create `src/composables/useVoiceRecorder.ts` (MediaRecorder API, max 60s, WebM/Opus)
+- [x] 5.2 Create `src/components/chat/VoiceRecorder.vue` UI component (hold-to-record, cancel gesture, duration timer)
+- [x] 5.3 Create `src/components/chat/VoicePlayer.vue` component (play/pause, progress bar, duration display)
+- [x] 5.4 Update chat store `sendMessage` to support voice type and audio file upload
+- [x] 5.5 Update ChatView message rendering to show VoicePlayer for `type === 'voice'` messages
+- [x] 5.6 Add microphone button to ChatView input area (show/hide based on MediaRecorder support)
+- [x] 5.7 Handle voice message upload errors and loading states
 
 ## 6. Integration & Polish
 
-- [ ] 6.1 Ensure all new components follow organic design system (colors, rounded corners, shadows, easing)
-- [ ] 6.2 Add anime.js enter/exit animations for EmojiPicker panel and VoiceRecorder overlay
-- [ ] 6.3 Run `pnpm run type-check` and fix all TypeScript errors
-- [ ] 6.4 Run `pnpm run lint` and fix all linting issues
-- [ ] 6.5 Run `pnpm run format` to format all changed files
+- [x] 6.1 Ensure all new components follow organic design system (colors, rounded corners, shadows, easing)
+- [x] 6.2 Add anime.js enter/exit animations for EmojiPicker panel and VoiceRecorder overlay
+- [x] 6.3 Run `pnpm run type-check` and fix all TypeScript errors
+- [x] 6.4 Run `pnpm run lint` and fix all linting issues
+- [x] 6.5 Run `pnpm run format` to format all changed files
 - [ ] 6.6 Manual QA: test emoji insertion, voice record/send/play, unread badges, notes, mute, pin

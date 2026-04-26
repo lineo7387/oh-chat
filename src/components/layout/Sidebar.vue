@@ -88,6 +88,14 @@ function truncatePreview(text: string | undefined, max = 40): string {
   if (!text) return ''
   return text.length > max ? text.slice(0, max) + '...' : text
 }
+
+function getMessagePreview(lastMessage: { content: string; type: string } | undefined): string {
+  if (!lastMessage) return ''
+  if (lastMessage.type === 'voice') return 'Voice message'
+  if (lastMessage.type === 'image') return 'Image'
+  if (lastMessage.type === 'file') return 'File'
+  return lastMessage.content
+}
 </script>
 
 <template>
@@ -216,7 +224,7 @@ function truncatePreview(text: string | undefined, max = 40): string {
                       : 'text-muted-foreground',
                   ]"
                 >
-                  {{ truncatePreview(conv.lastMessage?.content) }}
+                  {{ truncatePreview(getMessagePreview(conv.lastMessage)) }}
                 </p>
                 <span
                   v-if="conv.unreadCount > 0"

@@ -112,7 +112,7 @@ export interface Database {
           conversation_id: string
           sender_id: string | null
           content: string
-          type: 'text' | 'image' | 'file'
+          type: 'text' | 'image' | 'file' | 'voice'
           reply_to_id: string | null
           is_deleted: boolean
           created_at: string
@@ -123,7 +123,7 @@ export interface Database {
           conversation_id: string
           sender_id?: string | null
           content: string
-          type?: 'text' | 'image' | 'file'
+          type?: 'text' | 'image' | 'file' | 'voice'
           reply_to_id?: string | null
           is_deleted?: boolean
           created_at?: string
@@ -134,7 +134,7 @@ export interface Database {
           conversation_id?: string
           sender_id?: string | null
           content?: string
-          type?: 'text' | 'image' | 'file'
+          type?: 'text' | 'image' | 'file' | 'voice'
           reply_to_id?: string | null
           is_deleted?: boolean
           created_at?: string
