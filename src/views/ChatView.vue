@@ -239,7 +239,7 @@ watch(
 </script>
 
 <template>
-  <div class="flex flex-1 flex-col bg-background">
+  <div class="flex h-full min-h-0 flex-1 flex-col bg-background">
     <!-- Header -->
     <div class="flex items-center gap-3 border-b border-border/30 px-4 py-3">
       <RouterLink
@@ -289,7 +289,7 @@ watch(
     </div>
 
     <!-- Messages -->
-    <div ref="messagesContainer" class="flex-1 overflow-y-auto px-4 py-6">
+    <div ref="messagesContainer" class="min-h-0 flex-1 overflow-y-auto px-4 py-6">
       <div
         v-if="chatStore.isLoadingMessages && chatStore.messages.length === 0"
         class="flex h-full items-center justify-center"
