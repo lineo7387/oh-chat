@@ -215,7 +215,7 @@ watch(
 </script>
 
 <template>
-  <div class="flex h-full flex-col bg-background">
+  <div class="flex flex-1 flex-col bg-background">
     <!-- Header -->
     <div class="flex items-center gap-3 border-b border-border/30 px-4 py-3">
       <RouterLink

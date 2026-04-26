@@ -5,7 +5,7 @@ import Button from '@/components/ui/Button.vue'
 </script>
 
 <template>
-  <div class="relative flex h-full flex-col items-center justify-center px-6 py-12">
+  <div class="relative flex flex-1 flex-col items-center justify-center px-6 py-12">
     <BlobBackground
       :blobs="[
         {

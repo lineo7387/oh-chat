@@ -46,7 +46,7 @@ onUnmounted(() => {
     <Sidebar :is-open="sidebarOpen" @close="closeSidebar" />
 
     <!-- Main content -->
-    <main class="relative flex-1 overflow-hidden">
+    <main class="relative flex flex-1 flex-col overflow-hidden">
       <!-- Mobile header -->
       <div class="flex items-center gap-3 border-b border-border/30 px-4 py-3 md:hidden">
         <button
