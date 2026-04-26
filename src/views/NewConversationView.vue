@@ -168,7 +168,7 @@ async function sendFriendRequest(userId: string) {
     <div class="flex items-center gap-3 border-b border-border/30 px-4 py-3">
       <RouterLink
         to="/"
-        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-all duration-200 hover:bg-muted"
+        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-all duration-200 hover:bg-muted md:hidden"
       >
         <PhArrowLeft :size="22" class="text-foreground" />
       </RouterLink>

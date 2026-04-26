@@ -9,6 +9,7 @@ import {
   PhChatCircleDots,
   PhUserMinus,
   PhUser,
+  PhArrowLeft,
 } from '@phosphor-icons/vue'
 import { useFriendStore } from '@/stores/friend'
 import { useChatStore } from '@/stores/chat'
@@ -61,19 +62,27 @@ async function startChat(userId: string) {
   <div class="flex h-full flex-col bg-background">
     <!-- Header -->
     <div class="border-b border-border/30 px-6 py-4">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="font-heading text-2xl font-bold text-foreground">Contacts</h1>
-          <p class="mt-1 text-sm text-muted-foreground">
-            {{ friendStore.friends.length }} friends
-            <span v-if="friendStore.pendingCount > 0" class="ml-1 text-secondary">
-              · {{ friendStore.pendingCount }} pending
-            </span>
-          </p>
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex min-w-0 items-center gap-3">
+          <RouterLink
+            to="/"
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-all duration-200 hover:bg-muted md:hidden"
+          >
+            <PhArrowLeft :size="22" class="text-foreground" />
+          </RouterLink>
+          <div class="min-w-0">
+            <h1 class="font-heading text-2xl font-bold text-foreground">Contacts</h1>
+            <p class="mt-1 text-sm text-muted-foreground">
+              {{ friendStore.friends.length }} friends
+              <span v-if="friendStore.pendingCount > 0" class="ml-1 text-secondary">
+                · {{ friendStore.pendingCount }} pending
+              </span>
+            </p>
+          </div>
         </div>
         <RouterLink
           to="/new-conversation"
-          class="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all duration-200 hover:scale-105 active:scale-95"
+          class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all duration-200 hover:scale-105 active:scale-95"
         >
           <PhUserPlus :size="20" weight="bold" />
         </RouterLink>

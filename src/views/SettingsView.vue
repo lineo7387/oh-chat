@@ -11,7 +11,10 @@ import {
   PhPushPin,
   PhBellSlash,
   PhX,
+  PhArrowLeft,
+  PhCaretRight,
 } from '@phosphor-icons/vue'
+import { useBreakpoints, breakpointsTailwind } from '@vueuse/core'
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
 import { useConversationSettingsStore } from '@/stores/conversationSettings'
@@ -25,7 +28,24 @@ const router = useRouter()
 const authStore = useAuthStore()
 const chatStore = useChatStore()
 const settingsStore = useConversationSettingsStore()
-const activeTab = ref<TabId>('profile')
+
+const breakpoints = useBreakpoints(breakpointsTailwind)
+const isMobile = breakpoints.smaller('md')
+const activeTab = ref<TabId | null>(isMobile.value ? null : 'profile')
+
+watch(isMobile, (mobile) => {
+  if (!mobile && activeTab.value === null) {
+    activeTab.value = 'profile'
+  }
+})
+
+function handleBack() {
+  if (activeTab.value !== null) {
+    activeTab.value = null
+  } else {
+    router.push('/')
+  }
+}
 
 const tabs = [
   { id: 'profile' as TabId, label: 'Profile', icon: PhUser },
@@ -106,15 +126,26 @@ async function saveProfile() {
   <div class="flex h-full flex-col bg-background">
     <!-- Header -->
     <div class="border-b border-border/30 px-6 py-4">
-      <h1 class="font-heading text-2xl font-bold text-foreground">Settings</h1>
-      <p class="mt-1 text-sm text-muted-foreground">
-        Manage your profile, account, and preferences
-      </p>
+      <div class="flex items-center gap-3">
+        <button
+          type="button"
+          class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-all duration-200 hover:bg-muted md:hidden"
+          @click="handleBack"
+        >
+          <PhArrowLeft :size="22" class="text-foreground" />
+        </button>
+        <div class="min-w-0">
+          <h1 class="font-heading text-2xl font-bold text-foreground">Settings</h1>
+          <p class="mt-1 text-sm text-muted-foreground">
+            Manage your profile, account, and preferences
+          </p>
+        </div>
+      </div>
     </div>
 
     <div class="flex flex-1 overflow-hidden">
-      <!-- Sidebar tabs -->
-      <nav class="w-56 shrink-0 border-r border-border/30 p-4">
+      <!-- Sidebar tabs (desktop) -->
+      <nav class="hidden w-56 shrink-0 border-r border-border/30 p-4 md:block">
         <div class="space-y-1">
           <button
             v-for="tab in tabs"
@@ -133,8 +164,24 @@ async function saveProfile() {
         </div>
       </nav>
 
+      <!-- Mobile category list -->
+      <div v-if="isMobile && activeTab === null" class="flex flex-1 flex-col p-4 md:hidden">
+        <div class="space-y-2">
+          <button
+            v-for="tab in tabs"
+            :key="tab.id"
+            class="flex w-full items-center gap-4 rounded-2xl border border-border/30 bg-card px-4 py-4 text-left transition-all duration-200 hover:bg-muted"
+            @click="activeTab = tab.id"
+          >
+            <component :is="tab.icon" :size="22" weight="fill" class="shrink-0 text-primary" />
+            <span class="flex-1 text-base font-medium text-foreground">{{ tab.label }}</span>
+            <PhCaretRight :size="16" class="text-muted-foreground" />
+          </button>
+        </div>
+      </div>
+
       <!-- Content -->
-      <div class="flex-1 overflow-y-auto p-8">
+      <div v-if="!isMobile || activeTab !== null" class="flex-1 overflow-y-auto p-4 md:p-8">
         <!-- Profile -->
         <div v-if="activeTab === 'profile'" class="max-w-lg space-y-6">
           <h2 class="font-heading text-xl font-semibold text-foreground">Profile</h2>

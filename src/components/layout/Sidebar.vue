@@ -5,7 +5,6 @@ import {
   PhMagnifyingGlass,
   PhPlus,
   PhGear,
-  PhX,
   PhChatCircle,
   PhUsers,
   PhPushPin,
@@ -18,24 +17,12 @@ import { useConversationSettingsStore } from '@/stores/conversationSettings'
 import Avatar from '@/components/ui/Avatar.vue'
 import SwipeableItem from '@/components/ui/SwipeableItem.vue'
 
-defineProps<{
-  isOpen: boolean
-}>()
-
-const emit = defineEmits<{
-  close: []
-}>()
-
 const authStore = useAuthStore()
 const chatStore = useChatStore()
 const friendStore = useFriendStore()
 const settingsStore = useConversationSettingsStore()
 const router = useRouter()
 const activeSwipeId = ref<string | null>(null)
-
-function close() {
-  emit('close')
-}
 
 function onSwipeOpen(convId: string) {
   activeSwipeId.value = convId
@@ -104,19 +91,9 @@ function truncatePreview(text: string | undefined, max = 40): string {
 </script>
 
 <template>
-  <!-- Mobile overlay -->
-  <div
-    v-if="isOpen"
-    class="fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm md:hidden"
-    @click="close"
-  />
-
   <!-- Sidebar -->
   <aside
-    :class="[
-      'fixed z-50 flex h-full w-72 flex-col border-r border-border/30 bg-card/80 backdrop-blur-md transition-transform duration-300 ease-organic md:relative md:translate-x-0',
-      isOpen ? 'translate-x-0' : '-translate-x-full',
-    ]"
+    class="flex h-full w-full flex-col border-r border-border/30 bg-card/80 backdrop-blur-md md:w-72"
   >
     <!-- User avatar header -->
     <div class="flex items-center gap-3 border-b border-border/30 p-4">
@@ -130,12 +107,6 @@ function truncatePreview(text: string | undefined, max = 40): string {
         <p class="truncate font-heading text-sm font-semibold text-foreground">{{ displayName }}</p>
         <p class="text-xs capitalize text-muted-foreground">{{ statusText }}</p>
       </div>
-      <button
-        class="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-muted md:hidden"
-        @click="close"
-      >
-        <PhX :size="18" />
-      </button>
     </div>
 
     <!-- Search -->
@@ -200,7 +171,6 @@ function truncatePreview(text: string | undefined, max = 40): string {
                 ? 'bg-primary/10 text-primary'
                 : 'text-foreground hover:bg-muted',
             ]"
-            @click="close()"
           >
             <Avatar
               :src="chatStore.getConversationAvatar(conv)"
@@ -266,7 +236,6 @@ function truncatePreview(text: string | undefined, max = 40): string {
       <RouterLink
         to="/new-conversation"
         class="flex flex-1 items-center justify-center gap-2 rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-soft transition-all duration-200 hover:scale-105 hover:shadow-hover active:scale-95"
-        @click="close"
       >
         <PhPlus :size="18" weight="bold" />
         <span>New Chat</span>
@@ -274,7 +243,6 @@ function truncatePreview(text: string | undefined, max = 40): string {
       <RouterLink
         to="/contacts"
         class="relative flex h-10 w-10 items-center justify-center rounded-full border border-border bg-white/50 text-foreground transition-all duration-200 hover:bg-muted hover:scale-105 active:scale-95"
-        @click="close"
       >
         <PhUsers :size="18" />
         <span
@@ -287,7 +255,6 @@ function truncatePreview(text: string | undefined, max = 40): string {
       <RouterLink
         to="/settings"
         class="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-white/50 text-foreground transition-all duration-200 hover:bg-muted hover:scale-105 active:scale-95"
-        @click="close"
       >
         <PhGear :size="18" />
       </RouterLink>
