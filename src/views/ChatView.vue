@@ -105,6 +105,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   messagesContainer.value?.removeEventListener('scroll', onScroll)
+  chatStore.setCurrentConversation(null)
 })
 
 async function onScroll() {

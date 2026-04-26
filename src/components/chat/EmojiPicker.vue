@@ -83,7 +83,7 @@ watch(
   <div
     v-if="modelValue"
     ref="pickerRef"
-    class="absolute bottom-full right-0 z-50 mb-2 w-[320px] overflow-hidden rounded-[1.5rem] border border-border bg-card shadow-soft"
+    class="absolute bottom-full right-0 z-50 mb-2 w-[320px] overflow-hidden rounded-[1.5rem] border border-border bg-card shadow-soft max-sm:fixed max-sm:bottom-20 max-sm:left-2 max-sm:right-2 max-sm:w-auto max-sm:mb-0"
   >
     <!-- Search -->
     <div class="border-b border-border/50 px-3 py-2.5">

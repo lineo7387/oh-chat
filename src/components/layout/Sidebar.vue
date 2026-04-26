@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import {
   PhMagnifyingGlass,
   PhPlus,
@@ -21,6 +21,7 @@ const authStore = useAuthStore()
 const chatStore = useChatStore()
 const friendStore = useFriendStore()
 const settingsStore = useConversationSettingsStore()
+const route = useRoute()
 const router = useRouter()
 const activeSwipeId = ref<string | null>(null)
 
@@ -53,9 +54,9 @@ const statusText = computed(() => {
   return Date.now() - lastSeen < 2 * 60 * 1000 ? 'online' : 'offline'
 })
 
-// Fetch conversations when authenticated
+// Fetch conversations when authenticated (only if empty, to avoid refetch on mobile back-nav)
 onMounted(() => {
-  if (authStore.isAuthenticated) {
+  if (authStore.isAuthenticated && chatStore.conversations.length === 0) {
     chatStore.fetchConversations()
   }
 })
@@ -63,7 +64,7 @@ onMounted(() => {
 watch(
   () => authStore.isAuthenticated,
   (isAuth) => {
-    if (isAuth) chatStore.fetchConversations()
+    if (isAuth && chatStore.conversations.length === 0) chatStore.fetchConversations()
     else chatStore.conversations = []
   },
 )
@@ -175,7 +176,7 @@ function getMessagePreview(lastMessage: { content: string; type: string } | unde
             :to="`/chat/${conv.id}`"
             :class="[
               'flex items-center gap-3 rounded-2xl px-3 py-2.5 transition-all duration-200',
-              chatStore.currentConversationId === conv.id
+              chatStore.currentConversationId === conv.id && route.path.startsWith('/chat/')
                 ? 'bg-primary/10 text-primary'
                 : 'text-foreground hover:bg-muted',
             ]"
