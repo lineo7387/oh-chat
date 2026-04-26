@@ -605,6 +605,18 @@ export const useChatStore = defineStore('chat', () => {
           attachments: [],
         })
       }
+
+      // User is actively viewing this conversation — auto-mark as read so the
+      // server-side unread_count stays in sync and doesn't show stale unread
+      // badges after the user navigates back to the sidebar.
+      if (senderId !== authStore.user?.id) {
+        void (async () => {
+          const { error } = await supabase.rpc('mark_conversation_as_read', {
+            p_conversation_id: convId,
+          })
+          if (error) console.error('Auto mark-as-read failed:', error)
+        })()
+      }
     }
 
     // Update conversation list preview
